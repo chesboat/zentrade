@@ -1,7 +1,7 @@
 "use client"
 
 import React from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Flame, Target, TrendingUp, MessageCircle } from "lucide-react"
 
@@ -59,7 +59,7 @@ export function MotivatorCard({
       <CardContent>
         <div className="space-y-3">
           <p className="text-base leading-relaxed text-foreground/90 italic">
-            "{message}"
+            &ldquo;{message}&rdquo;
           </p>
           
           {/* Progress indicators */}

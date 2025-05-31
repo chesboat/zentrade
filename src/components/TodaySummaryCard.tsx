@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, TrendingUp, Target, Flame, Star } from "lucide-react";
+import { CheckCircle, Target, Flame, Star } from "lucide-react";
 import { useTrades } from "@/contexts/TradesContext";
 import { useTraderProgress } from "@/hooks/useTraderProgress";
 import { XPBar } from "@/components/gamification/XPBar";

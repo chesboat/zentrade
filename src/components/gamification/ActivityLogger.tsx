@@ -10,7 +10,6 @@ import {
   RefreshCw, 
   FileText, 
   Plus, 
-  Calendar,
   Zap 
 } from "lucide-react"
 import { addActivity, ActivityType, XP_RULES } from '@/services/xpService'

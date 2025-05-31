@@ -1,4 +1,4 @@
-import { doc, updateDoc, getDoc, addDoc, collection, query, where, getDocs, orderBy, limit, serverTimestamp } from 'firebase/firestore'
+import { doc, updateDoc, getDoc, addDoc, collection, query, where, getDocs, orderBy, serverTimestamp } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { Trade } from '@/mockData/trades'
 
