@@ -19,7 +19,8 @@ import {
   ArrowUp,
   ArrowDown,
   Trash2,
-  Plus
+  Plus,
+  Trophy
 } from "lucide-react"
 import { Trade } from "@/mockData/trades"
 import { Activity, updateActivity, deleteActivity, addActivity, ActivityType, XP_RULES } from "@/services/xpService"
@@ -619,6 +620,35 @@ export function EnhancedCalendarModal({
               })}
             </div>
           </div>
+
+          {/* Daily Bonuses Section */}
+          {rulesFollowedXP > 0 && (
+            <div>
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-yellow-600" />
+                Daily Bonuses
+              </h3>
+              <div className="space-y-2">
+                <div className="border rounded-lg p-3 bg-yellow-50 border-yellow-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-yellow-100 text-yellow-600">
+                        <Trophy className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-yellow-800">Rules Followed All Day</div>
+                        <div className="text-sm text-yellow-700">Journaled trades with discipline</div>
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="flex items-center gap-1 border-yellow-300 text-yellow-800">
+                      <Zap className="h-3 w-3" />
+                      +{rulesFollowedXP} XP
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
