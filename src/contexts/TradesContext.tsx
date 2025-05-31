@@ -83,21 +83,38 @@ export function TradesProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      // Clean the trade data to remove undefined values
-      const cleanedTrade = Object.fromEntries(
-        Object.entries(newTrade).filter(([_, value]) => value !== undefined)
-      )
+      // Clean the trade data more thoroughly
+      const cleanedTrade: any = {}
+      
+      // Only add defined values
+      if (newTrade.symbol) cleanedTrade.symbol = newTrade.symbol
+      if (newTrade.company) cleanedTrade.company = newTrade.company
+      if (newTrade.type) cleanedTrade.type = newTrade.type
+      if (newTrade.quantity !== undefined && newTrade.quantity !== null) cleanedTrade.quantity = newTrade.quantity
+      if (newTrade.entryPrice !== undefined && newTrade.entryPrice !== null) cleanedTrade.entryPrice = newTrade.entryPrice
+      if (newTrade.exitPrice !== undefined && newTrade.exitPrice !== null) cleanedTrade.exitPrice = newTrade.exitPrice
+      if (newTrade.entryDate) cleanedTrade.entryDate = newTrade.entryDate
+      if (newTrade.exitDate) cleanedTrade.exitDate = newTrade.exitDate
+      if (newTrade.pnl !== undefined && newTrade.pnl !== null) cleanedTrade.pnl = newTrade.pnl
+      if (newTrade.status) cleanedTrade.status = newTrade.status
+      if (newTrade.notes) cleanedTrade.notes = newTrade.notes
+      if (newTrade.strategy) cleanedTrade.strategy = newTrade.strategy
+      if (newTrade.screenshot) cleanedTrade.screenshot = newTrade.screenshot
+      if (newTrade.riskAmount !== undefined && newTrade.riskAmount !== null) cleanedTrade.riskAmount = newTrade.riskAmount
+      if (newTrade.riskRewardRatio !== undefined && newTrade.riskRewardRatio !== null) cleanedTrade.riskRewardRatio = newTrade.riskRewardRatio
+
+      // Ensure required fields have values
+      if (!cleanedTrade.symbol) throw new Error('Symbol is required')
+      if (!cleanedTrade.type) cleanedTrade.type = 'long'
+      if (!cleanedTrade.status) cleanedTrade.status = 'open'
+      if (!cleanedTrade.strategy) cleanedTrade.strategy = 'Manual Entry'
+      if (!cleanedTrade.company) cleanedTrade.company = cleanedTrade.symbol
 
       await addDoc(collection(db, 'trades'), {
         ...cleanedTrade,
         userId: user.uid,
         createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        // Ensure required fields have defaults
-        notes: cleanedTrade.notes || '',
-        strategy: cleanedTrade.strategy || '',
-        status: cleanedTrade.status || 'open',
-        type: cleanedTrade.type || 'long'
+        updatedAt: serverTimestamp()
       })
     } catch (error) {
       console.error('Error adding trade:', error)
