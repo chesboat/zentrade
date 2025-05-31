@@ -4,7 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { useTheme } from "next-themes"
-import { Moon, Sun, TrendingUp, User, LogOut } from "lucide-react"
+import { Moon, Sun, TrendingUp, User, LogOut, Settings } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 
 import { Button } from "@/components/ui/button"
@@ -66,6 +66,12 @@ export function Navigation() {
               </Link>
               <Link
                 className="transition-colors hover:text-foreground/80 text-foreground/60"
+                href="/onboarding"
+              >
+                Rules Setup
+              </Link>
+              <Link
+                className="transition-colors hover:text-foreground/80 text-foreground/60"
                 href="/settings"
               >
                 Settings
@@ -102,9 +108,17 @@ export function Navigation() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem>
-                    <User className="mr-2 h-4 w-4" />
-                    Profile
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile" className="flex items-center w-full">
+                      <User className="mr-2 h-4 w-4" />
+                      Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/onboarding" className="flex items-center w-full">
+                      <Settings className="mr-2 h-4 w-4" />
+                      Setup Trading Rules
+                    </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout}>
