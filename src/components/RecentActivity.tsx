@@ -56,7 +56,7 @@ const ActivityTypeConfig = {
 }
 
 export function RecentActivity() {
-  const { trades } = useTrades()
+  const { trades, deleteTrade } = useTrades()
   const { activities, refreshProgress } = useTraderProgress()
   const { user } = useAuth()
   const [editingActivity, setEditingActivity] = useState<string | null>(null)
@@ -117,6 +117,18 @@ export function RecentActivity() {
     }
   }
 
+  const handleDeleteTrade = async (tradeId: string) => {
+    if (confirm('Are you sure you want to delete this trade?')) {
+      try {
+        await deleteTrade(tradeId)
+        await refreshProgress() // Refresh to get updated data
+      } catch (error) {
+        console.error('Error deleting trade:', error)
+        alert('Failed to delete trade. Please try again.')
+      }
+    }
+  }
+
   const handleCancelEdit = () => {
     setEditingActivity(null)
     setEditedNotes('')
@@ -151,7 +163,10 @@ export function RecentActivity() {
       key={activity.id}
       className="flex items-center justify-between p-4 hover:bg-muted/30 rounded-lg transition-colors cursor-pointer group"
     >
-      <div className="flex items-center space-x-3">
+      <div 
+        className="flex items-center space-x-3 flex-grow"
+        onClick={() => {/* Trade click handler could be added here */}}
+      >
         {/* Trade Direction Icon */}
         <div className={`
           flex items-center justify-center w-10 h-10 rounded-full
@@ -188,18 +203,33 @@ export function RecentActivity() {
         </div>
       </div>
 
-      {/* Trade Results */}
-      <div className="text-right space-y-1">
-        {trade.pnl !== undefined && (
-          <div className={`font-medium ${
-            trade.pnl >= 0 ? 'text-green-600' : 'text-red-600'
-          }`}>
-            {formatCurrency(trade.pnl)}
+      {/* Trade Results and Controls */}
+      <div className="flex items-center gap-3">
+        <div className="text-right space-y-1">
+          {trade.pnl !== undefined && (
+            <div className={`font-medium ${
+              trade.pnl >= 0 ? 'text-green-600' : 'text-red-600'
+            }`}>
+              {formatCurrency(trade.pnl)}
+            </div>
+          )}
+          <div className="text-sm text-muted-foreground">
+            {formatCurrency(trade.entryPrice)}
           </div>
-        )}
-        <div className="text-sm text-muted-foreground">
-          {formatCurrency(trade.entryPrice)}
         </div>
+        
+        {/* Delete Button */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation()
+            handleDeleteTrade(trade.id)
+          }}
+          className="opacity-0 group-hover:opacity-100 transition-opacity text-red-600 hover:text-red-700"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
       </div>
     </div>
   )

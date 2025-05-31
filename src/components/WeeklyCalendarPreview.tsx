@@ -18,6 +18,7 @@ import { useTraderProgress } from "@/hooks/useTraderProgress";
 import { Trade } from "@/mockData/trades";
 import { Activity } from "@/services/xpService";
 import Image from "next/image";
+import { EnhancedCalendarModal } from "./EnhancedCalendarModal";
 
 interface DayStats {
   date: string;
@@ -30,142 +31,6 @@ interface DayStats {
   isToday: boolean;
   trades: Trade[];
   activities: Activity[];
-}
-
-interface CalendarSummaryModalProps {
-  date: Date | null;
-  trades: Trade[];
-  onClose: () => void;
-  onTradeClick: (trade: Trade) => void;
-}
-
-function CalendarSummaryModal({ date, trades, onClose, onTradeClick }: CalendarSummaryModalProps) {
-  if (!date) return null;
-
-  const totalPnL = trades.reduce((sum, trade) => sum + (trade.pnl || 0), 0);
-  const winCount = trades.filter(trade => (trade.pnl || 0) > 0).length;
-  const lossCount = trades.filter(trade => (trade.pnl || 0) < 0).length;
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-2xl max-h-[80vh] overflow-y-auto">
-        <CardHeader className="pb-4">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              {date.toLocaleDateString('en-US', { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-              })}
-            </CardTitle>
-            <Button variant="ghost" size="sm" onClick={onClose}>
-              ✕
-            </Button>
-          </div>
-          
-          {trades.length > 0 && (
-            <div className="flex items-center gap-4 text-sm">
-              <div className={`font-medium ${
-                totalPnL > 0 ? 'text-green-600' : totalPnL < 0 ? 'text-red-600' : 'text-yellow-600'
-              }`}>
-                Total P&L: {totalPnL >= 0 ? '+' : ''}${totalPnL.toFixed(2)}
-              </div>
-              <div className="text-muted-foreground">
-                {trades.length} trades • {winCount}W {lossCount}L
-              </div>
-            </div>
-          )}
-        </CardHeader>
-        
-        <CardContent>
-          {trades.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No trades on this day
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {trades.map((trade) => (
-                <div 
-                  key={trade.id} 
-                  className="border rounded-lg p-3 cursor-pointer hover:bg-muted/50 transition-colors"
-                  onClick={() => onTradeClick(trade)}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary">{trade.symbol}</Badge>
-                      <Badge variant={trade.type === 'long' ? 'default' : 'destructive'}>
-                        {trade.type === 'long' ? (
-                          <TrendingUp className="h-3 w-3 mr-1" />
-                        ) : (
-                          <TrendingDown className="h-3 w-3 mr-1" />
-                        )}
-                        {trade.type.toUpperCase()}
-                      </Badge>
-                      <span className="text-sm font-medium">
-                        ${trade.entryPrice.toFixed(2)}
-                        {trade.exitPrice && ` → $${trade.exitPrice.toFixed(2)}`}
-                      </span>
-                    </div>
-                    {trade.pnl && (
-                      <div className={`font-medium ${
-                        trade.pnl > 0 ? 'text-green-600' : trade.pnl < 0 ? 'text-red-600' : 'text-yellow-600'
-                      }`}>
-                        {trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="text-sm text-muted-foreground mb-2">
-                    {trade.quantity} contracts • {trade.strategy}
-                    {trade.screenshot && <span className="ml-2">📸</span>}
-                  </div>
-                  
-                  {trade.notes && (
-                    <div className="text-sm bg-muted/30 p-2 rounded border-l-2 border-blue-500 relative">
-                      <div className="flex items-start gap-1">
-                        <span>📒</span>
-                        <div className="flex-1 min-w-0">
-                          {trade.notes.length > 100 ? (
-                            <div className="relative">
-                              <div 
-                                className="overflow-hidden relative"
-                                style={{
-                                  maxHeight: '2.5rem',
-                                  WebkitMask: 'linear-gradient(180deg, black 0%, black 60%, transparent 100%)',
-                                  mask: 'linear-gradient(180deg, black 0%, black 60%, transparent 100%)'
-                                }}
-                              >
-                                {trade.notes}
-                                {/* Fallback gradient overlay for browsers without mask support */}
-                                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-muted/30 pointer-events-none" 
-                                     style={{ top: '60%' }} />
-                              </div>
-                              <div className="absolute bottom-0 right-0 text-muted-foreground text-xs pointer-events-none">
-                                ⋯
-                              </div>
-                            </div>
-                          ) : (
-                            <span>{trade.notes}</span>
-                          )}
-                        </div>
-                      </div>
-                      {trade.notes.length > 100 && (
-                        <div className="text-xs text-muted-foreground mt-1 italic">
-                          Click trade for full journal entry
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
 }
 
 function TradeDetailModal({ trade, onClose, onTradeUpdate }: { 
@@ -631,7 +496,7 @@ function TradeDetailModal({ trade, onClose, onTradeUpdate }: {
 
 export function WeeklyCalendarPreview() {
   const { trades } = useTrades();
-  const { activities } = useTraderProgress();
+  const { activities, refreshProgress } = useTraderProgress();
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTradeDetail, setSelectedTradeDetail] = useState<Trade | null>(null);
 
@@ -708,9 +573,17 @@ export function WeeklyCalendarPreview() {
     }
   };
 
-  const selectedDateTrades = selectedDate 
-    ? weekData.find(day => day.date === selectedDate.toISOString().split('T')[0])?.trades || []
-    : [];
+  const handleDataUpdate = async () => {
+    // Refresh progress data to get updated activities and user progress
+    await refreshProgress();
+  };
+
+  const selectedDateData = selectedDate 
+    ? weekData.find(day => day.date === selectedDate.toISOString().split('T')[0])
+    : null;
+
+  const selectedDateTrades = selectedDateData?.trades || [];
+  const selectedDateActivities = selectedDateData?.activities || [];
 
   return (
     <>
@@ -811,14 +684,16 @@ export function WeeklyCalendarPreview() {
 
       {/* Day Summary Modal */}
       {selectedDate && (
-        <CalendarSummaryModal
+        <EnhancedCalendarModal
           date={selectedDate}
           trades={selectedDateTrades}
+          activities={selectedDateActivities}
           onClose={() => setSelectedDate(null)}
           onTradeClick={(trade) => {
             setSelectedTradeDetail(trade)
             setSelectedDate(null) // Close calendar modal when trade detail opens
           }}
+          onDataUpdate={handleDataUpdate}
         />
       )}
 
