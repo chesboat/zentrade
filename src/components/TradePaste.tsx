@@ -846,6 +846,136 @@ export function TradePaste() {
               </div>
             </div>
 
+            {/* Additional Trade Details Row */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {/* Stop Loss */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">Stop Loss</label>
+                <div className="flex items-center gap-2">
+                  {parsedTrade.stopLoss ? (
+                    <div className="flex items-center gap-1 text-base font-medium text-red-600">
+                      <DollarSign className="h-3 w-3" />
+                      {parsedTrade.stopLoss.toFixed(2)}
+                    </div>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">Not detected</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Take Profit */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">Take Profit</label>
+                <div className="flex items-center gap-2">
+                  {parsedTrade.takeProfit ? (
+                    <div className="flex items-center gap-1 text-base font-medium text-green-600">
+                      <Target className="h-3 w-3" />
+                      {parsedTrade.takeProfit.toFixed(2)}
+                    </div>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">Not detected</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Risk Amount */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">Risk Amount</label>
+                <div className="flex items-center gap-2">
+                  {parsedTrade.actualRisk ? (
+                    <div className="flex items-center gap-1 text-base font-medium text-orange-600">
+                      <DollarSign className="h-3 w-3" />
+                      {parsedTrade.actualRisk.toFixed(2)}
+                    </div>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">Not detected</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Quantity */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">Quantity</label>
+                <div className="flex items-center gap-2">
+                  {parsedTrade.quantity ? (
+                    <span className="text-base font-medium">{parsedTrade.quantity}</span>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">Not detected</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Outcome and P&L Row */}
+            {(parsedTrade.outcome || parsedTrade.actualPnL !== undefined || parsedTrade.exitPrice) && (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {/* Trade Outcome */}
+                {parsedTrade.outcome && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">Outcome</label>
+                    <div className="flex items-center gap-2">
+                      <Badge 
+                        variant={
+                          parsedTrade.outcome === 'win' ? 'default' : 
+                          parsedTrade.outcome === 'loss' ? 'destructive' : 
+                          'secondary'
+                        }
+                        className="text-base px-3 py-1"
+                      >
+                        {parsedTrade.outcome === 'win' && <TrendingUp className="h-3 w-3 mr-1" />}
+                        {parsedTrade.outcome === 'loss' && <TrendingDown className="h-3 w-3 mr-1" />}
+                        {parsedTrade.outcome === 'breakeven' && <span className="mr-1">⚖️</span>}
+                        {parsedTrade.outcome.charAt(0).toUpperCase() + parsedTrade.outcome.slice(1)}
+                      </Badge>
+                    </div>
+                  </div>
+                )}
+
+                {/* P&L */}
+                {parsedTrade.actualPnL !== undefined && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">P&L</label>
+                    <div className="flex items-center gap-2">
+                      <div className={`flex items-center gap-1 text-base font-medium ${
+                        parsedTrade.actualPnL > 0 ? 'text-green-600' : 
+                        parsedTrade.actualPnL < 0 ? 'text-red-600' : 
+                        'text-gray-600'
+                      }`}>
+                        <DollarSign className="h-3 w-3" />
+                        {parsedTrade.actualPnL >= 0 ? '+' : ''}{parsedTrade.actualPnL.toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Exit Price */}
+                {parsedTrade.exitPrice && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">Exit Price</label>
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 text-base font-medium">
+                        <DollarSign className="h-3 w-3" />
+                        {parsedTrade.exitPrice.toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Risk Adjustment Warning */}
+            {parsedTrade.riskAdjustment && (
+              <div className="p-3 border rounded-lg bg-yellow-50 border-yellow-200">
+                <div className="flex items-center gap-2 text-yellow-800">
+                  <AlertCircle className="h-4 w-4" />
+                  <span className="text-sm font-medium">
+                    {parsedTrade.riskAdjustment === 'moderate_risk' && 'Risk adjusted upward due to contract rounding'}
+                    {parsedTrade.riskAdjustment === 'lower_risk' && 'Risk adjusted downward due to contract rounding'}
+                  </span>
+                </div>
+              </div>
+            )}
+
             <Separator />
 
             {/* Screenshot Section */}
