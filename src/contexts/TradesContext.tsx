@@ -46,7 +46,7 @@ export function TradesProvider({ children }: { children: ReactNode }) {
     const tradesQuery = query(
       collection(db, 'trades'),
       where('userId', '==', user.uid),
-      orderBy('CreatedAt', 'desc')
+      orderBy('createdAt', 'desc')
     )
 
     const unsubscribe = onSnapshot(
@@ -60,7 +60,7 @@ export function TradesProvider({ children }: { children: ReactNode }) {
             // Convert Firestore Timestamps back to strings if needed
             entryDate: data.entryDate || '',
             exitDate: data.exitDate || undefined,
-            createdAt: data.CreatedAt instanceof Timestamp ? data.CreatedAt.toDate().toISOString() : data.CreatedAt,
+            createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : data.createdAt,
             updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate().toISOString() : data.updatedAt
           } as unknown as Trade
         })
@@ -113,7 +113,7 @@ export function TradesProvider({ children }: { children: ReactNode }) {
       await addDoc(collection(db, 'trades'), {
         ...cleanedTrade,
         userId: user.uid,
-        CreatedAt: serverTimestamp(),
+        createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       })
     } catch (error) {
