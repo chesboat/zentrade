@@ -199,12 +199,31 @@ export const updateUserProgress = async (
     const userData = userSnap.data()
     const today = new Date().toISOString().split('T')[0]
     
-    // Calculate today's XP
-    const todayXP = calculateDailyXP(trades, activities, today)
-    
-    // Update daily XP log
+    // Get existing daily XP log
     const dailyXPLog = userData.dailyXPLog || {}
-    dailyXPLog[today] = todayXP
+    
+    // Calculate XP for all dates that have trades or activities
+    const allDates = new Set<string>()
+    
+    // Add all trade dates
+    trades.forEach(trade => {
+      if (trade.entryDate) allDates.add(trade.entryDate)
+      if (trade.exitDate) allDates.add(trade.exitDate)
+    })
+    
+    // Add all activity dates
+    activities.forEach(activity => {
+      allDates.add(activity.date)
+    })
+    
+    // Always include today
+    allDates.add(today)
+    
+    // Calculate XP for each date
+    allDates.forEach(date => {
+      const dayXP = calculateDailyXP(trades, activities, date)
+      dailyXPLog[date] = dayXP
+    })
     
     // Calculate total XP
     const totalXP = Object.values(dailyXPLog).reduce((sum: number, xp: unknown) => 
