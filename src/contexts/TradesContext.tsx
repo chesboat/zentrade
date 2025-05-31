@@ -17,6 +17,7 @@ import {
   Timestamp
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import { updateUserProgress, getUserActivities } from '@/services/xpService'
 
 interface TradesContextType {
   trades: Trade[]
@@ -116,6 +117,16 @@ export function TradesProvider({ children }: { children: ReactNode }) {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       })
+
+      // Update user XP after adding trade
+      try {
+        const userActivities = await getUserActivities(user.uid)
+        const updatedTrades = [...trades, { id: 'temp', ...newTrade }] // Include the new trade for XP calculation
+        await updateUserProgress(user.uid, updatedTrades, userActivities)
+      } catch (xpError) {
+        console.error('Error updating XP after adding trade:', xpError)
+        // Don't throw here - the trade was successfully added
+      }
     } catch (error) {
       console.error('Error adding trade:', error)
       throw error
@@ -138,6 +149,19 @@ export function TradesProvider({ children }: { children: ReactNode }) {
         ...cleanedUpdates,
         updatedAt: serverTimestamp()
       })
+
+      // Update user XP after updating trade
+      try {
+        const userActivities = await getUserActivities(user.uid)
+        // Update the trades array with the updated trade for XP calculation
+        const updatedTrades = trades.map(trade => 
+          trade.id === id ? { ...trade, ...cleanedUpdates } : trade
+        )
+        await updateUserProgress(user.uid, updatedTrades, userActivities)
+      } catch (xpError) {
+        console.error('Error updating XP after updating trade:', xpError)
+        // Don't throw here - the trade was successfully updated
+      }
     } catch (error) {
       console.error('Error updating trade:', error)
       throw error

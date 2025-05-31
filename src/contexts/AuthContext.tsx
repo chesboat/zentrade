@@ -21,9 +21,15 @@ export interface UserProfile {
   displayName: string | null
   photoURL: string | null
   createdAt: unknown
+  // Gamification fields
+  level: number
   xp: number
+  xpToNextLevel: number
   streak: number
   longestStreak: number
+  lastActivityDate: string | null
+  titlesUnlocked: string[]
+  dailyXPLog: Record<string, number> // { "2025-05-30": 45 }
 }
 
 interface AuthContextType {
@@ -60,9 +66,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           email,
           photoURL,
           createdAt: serverTimestamp(),
+          // Initialize gamification fields
+          level: 1,
           xp: 0,
+          xpToNextLevel: 100, // Level 1 requires 100 XP
           streak: 0,
           longestStreak: 0,
+          lastActivityDate: null,
+          titlesUnlocked: [],
+          dailyXPLog: {},
           ...additionalData
         })
       } catch (error) {

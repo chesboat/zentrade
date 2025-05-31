@@ -10,6 +10,7 @@ import { TodaySummaryCard } from "@/components/TodaySummaryCard";
 import { WeeklyCalendarPreview } from "@/components/WeeklyCalendarPreview";
 import { RecentTrades } from "@/components/RecentTrades";
 import { SmartNudges } from "@/components/SmartNudges";
+import { ActivityLogger } from "@/components/gamification/ActivityLogger";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { useTrades } from "@/contexts/TradesContext";
 import { calculateTradingStats } from "@/utils/tradingStats";
@@ -200,6 +201,7 @@ function Dashboard() {
       <div className="space-y-4">
         <h2 className="text-xl font-semibold tracking-tight">Insights & Suggestions</h2>
         <SmartNudges />
+        <ActivityLogger />
       </div>
 
       {/* Performance Metrics - Grouped */}
