@@ -161,78 +161,7 @@ export function TradePaste() {
             console.log('🎯 Single price level:', result.entryPrice)
           }
           
-          // 6. DETERMINE OUTCOME & P&L
-          const currentPrice = prices[prices.length - 1]
-          
-          if (result.direction && result.entryPrice && currentPrice) {
-            // Check if exit price equals entry price (breakeven scenario)
-            const priceThreshold = 0.01 // Small threshold for price comparison
-            if (Math.abs(currentPrice - result.entryPrice) <= priceThreshold) {
-              result.outcome = 'breakeven'
-              result.exitPrice = result.entryPrice
-              result.actualPnL = 0
-              console.log('🟡 Detected breakeven trade: exit price equals entry price')
-            } else if (result.stopLoss && result.takeProfit) {
-              // Original logic for trades with explicit stop/target levels
-              if (result.direction === 'Short') {
-                const stopDistance = Math.abs(currentPrice - result.stopLoss)
-                const targetDistance = Math.abs(currentPrice - result.takeProfit)
-                
-                if (stopDistance < targetDistance) {
-                  result.outcome = 'loss'
-                  result.exitPrice = result.stopLoss
-                  result.actualPnL = -(source.state?.riskSize || 125)
-                } else {
-                  result.outcome = 'win'
-                  result.exitPrice = result.takeProfit
-                  const riskPoints = Math.abs(result.stopLoss - result.entryPrice)
-                  const profitPoints = Math.abs(result.takeProfit - result.entryPrice)
-                  const rrRatio = profitPoints / riskPoints
-                  result.actualPnL = (source.state?.riskSize || 125) * rrRatio
-                }
-              } else if (result.direction === 'Long') {
-                const stopDistance = Math.abs(currentPrice - result.stopLoss)
-                const targetDistance = Math.abs(currentPrice - result.takeProfit)
-                
-                if (stopDistance < targetDistance) {
-                  result.outcome = 'loss'
-                  result.exitPrice = result.stopLoss
-                  result.actualPnL = -(source.state?.riskSize || 125)
-                } else {
-                  result.outcome = 'win'
-                  result.exitPrice = result.takeProfit
-                  const riskPoints = Math.abs(result.stopLoss - result.entryPrice)
-                  const profitPoints = Math.abs(result.takeProfit - result.entryPrice)
-                  const rrRatio = profitPoints / riskPoints
-                  result.actualPnL = (source.state?.riskSize || 125) * rrRatio
-                }
-              }
-            } else {
-              // When no explicit stop/target but we have price movement
-              result.exitPrice = currentPrice
-              const priceDiff = result.direction === 'Long' 
-                ? currentPrice - result.entryPrice 
-                : result.entryPrice - currentPrice
-              
-              if (Math.abs(priceDiff) <= priceThreshold) {
-                result.outcome = 'breakeven'
-                result.actualPnL = 0
-              } else if (priceDiff > 0) {
-                result.outcome = 'win'
-                // Estimate P&L based on price movement
-                const pointValue = source.state?.riskSize || 125
-                result.actualPnL = Math.abs(priceDiff) * (pointValue / 10) // Rough estimation
-              } else {
-                result.outcome = 'loss'
-                const pointValue = source.state?.riskSize || 125
-                result.actualPnL = -Math.abs(priceDiff) * (pointValue / 10) // Rough estimation
-              }
-            }
-            console.log('📊 Outcome:', result.outcome)
-            console.log('💰 P&L:', result.actualPnL)
-          }
-          
-          // 7. CONTRACT QUANTITY HANDLING
+          // 6. CONTRACT QUANTITY HANDLING (moved before P&L calculation)
           if (source.state && source.state.qty) {
             const originalQty = source.state.qty
             const symbol = result.ticker || ''
@@ -255,6 +184,79 @@ export function TradePaste() {
               result.actualRisk = source.state.riskSize || 125
             }
             console.log('📈 Quantity:', result.quantity)
+            console.log('💰 Adjusted Risk:', result.actualRisk)
+          }
+          
+          // 7. DETERMINE OUTCOME & P&L (using adjusted risk amount)
+          const currentPrice = prices[prices.length - 1]
+          
+          if (result.direction && result.entryPrice && currentPrice) {
+            // Use the adjusted risk amount (or fallback to original)
+            const riskAmount = result.actualRisk || source.state?.riskSize || 125
+            
+            // Check if exit price equals entry price (breakeven scenario)
+            const priceThreshold = 0.01 // Small threshold for price comparison
+            if (Math.abs(currentPrice - result.entryPrice) <= priceThreshold) {
+              result.outcome = 'breakeven'
+              result.exitPrice = result.entryPrice
+              result.actualPnL = 0
+              console.log('🟡 Detected breakeven trade: exit price equals entry price')
+            } else if (result.stopLoss && result.takeProfit) {
+              // Original logic for trades with explicit stop/target levels
+              if (result.direction === 'Short') {
+                const stopDistance = Math.abs(currentPrice - result.stopLoss)
+                const targetDistance = Math.abs(currentPrice - result.takeProfit)
+                
+                if (stopDistance < targetDistance) {
+                  result.outcome = 'loss'
+                  result.exitPrice = result.stopLoss
+                  result.actualPnL = -riskAmount // Use adjusted risk amount
+                } else {
+                  result.outcome = 'win'
+                  result.exitPrice = result.takeProfit
+                  const riskPoints = Math.abs(result.stopLoss - result.entryPrice)
+                  const profitPoints = Math.abs(result.takeProfit - result.entryPrice)
+                  const rrRatio = profitPoints / riskPoints
+                  result.actualPnL = riskAmount * rrRatio // Use adjusted risk amount
+                }
+              } else if (result.direction === 'Long') {
+                const stopDistance = Math.abs(currentPrice - result.stopLoss)
+                const targetDistance = Math.abs(currentPrice - result.takeProfit)
+                
+                if (stopDistance < targetDistance) {
+                  result.outcome = 'loss'
+                  result.exitPrice = result.stopLoss
+                  result.actualPnL = -riskAmount // Use adjusted risk amount
+                } else {
+                  result.outcome = 'win'
+                  result.exitPrice = result.takeProfit
+                  const riskPoints = Math.abs(result.stopLoss - result.entryPrice)
+                  const profitPoints = Math.abs(result.takeProfit - result.entryPrice)
+                  const rrRatio = profitPoints / riskPoints
+                  result.actualPnL = riskAmount * rrRatio // Use adjusted risk amount
+                }
+              }
+            } else {
+              // When no explicit stop/target but we have price movement
+              result.exitPrice = currentPrice
+              const priceDiff = result.direction === 'Long' 
+                ? currentPrice - result.entryPrice 
+                : result.entryPrice - currentPrice
+              
+              if (Math.abs(priceDiff) <= priceThreshold) {
+                result.outcome = 'breakeven'
+                result.actualPnL = 0
+              } else if (priceDiff > 0) {
+                result.outcome = 'win'
+                // Estimate P&L based on price movement using adjusted risk
+                result.actualPnL = Math.abs(priceDiff) * (riskAmount / 10) // Rough estimation
+              } else {
+                result.outcome = 'loss'
+                result.actualPnL = -Math.abs(priceDiff) * (riskAmount / 10) // Rough estimation
+              }
+            }
+            console.log('📊 Outcome:', result.outcome)
+            console.log('💰 P&L:', result.actualPnL)
           }
         }
         
