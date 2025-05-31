@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { ChevronLeft, ChevronRight, Calendar, TrendingUp, TrendingDown, BookOpen } from "lucide-react"
 import { Trade } from "@/mockData/trades"
 import { useTrades } from "@/contexts/TradesContext"
+import Image from "next/image"
 
 interface DayData {
   date: Date
@@ -295,10 +296,12 @@ function TradeDetailModal({ trade, onClose, onTradeUpdate }: {
             <div className="space-y-3">
               <label className="text-sm font-medium text-muted-foreground">Screenshot</label>
               <div className="relative group">
-                <img 
+                <Image 
                   src={trade.screenshot} 
                   alt="Trade screenshot" 
                   className="w-full rounded-lg border shadow-sm cursor-pointer max-h-96 object-contain bg-muted/20"
+                  width={300}
+                  height={200}
                   onClick={() => {
                     const newWindow = window.open()
                     if (newWindow) {

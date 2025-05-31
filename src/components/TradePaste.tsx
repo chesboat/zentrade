@@ -3,13 +3,13 @@
 import React, { useState, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Separator } from "@/components/ui/separator"
 import { Copy, TrendingUp, TrendingDown, Target, Shield, DollarSign, CheckCircle, AlertCircle } from "lucide-react"
 import { useTrades } from "@/contexts/TradesContext"
 import { Trade as ContextTrade } from "@/mockData/trades"
+import Image from "next/image"
 
 interface ParsedTrade {
   ticker?: string
@@ -25,12 +25,11 @@ interface ParsedTrade {
   actualPnL?: number
   actualRisk?: number
   riskAdjustment?: 'moderate_risk' | 'lower_risk' | 'normal'
-  screenshot?: string // base64 image data
-  journalEntry?: string // rich text journal entry
+  screenshot?: string
+  journalEntry?: string
 }
 
 export function TradePaste() {
-  const [pastedText, setPastedText] = useState('')
   const [parsedTrade, setParsedTrade] = useState<ParsedTrade | null>(null)
   const [error, setError] = useState<string>('')
   const [showSuccess, setShowSuccess] = useState(false)
@@ -46,295 +45,73 @@ export function TradePaste() {
   const parseTradingViewData = useCallback((text: string): ParsedTrade => {
     const result: ParsedTrade = { originalText: text }
     
-    console.log('🔍 Starting TradingView data parsing...')
-    
-    // 1. DETECT DATA FORMAT - Look for the critical data-tradingview-clip attribute
+    // Look for TradingView clip data
     if (text.includes('data-tradingview-clip')) {
-      console.log('✅ Found data-tradingview-clip attribute!')
-      
       try {
-        // Extract the JSON from data-tradingview-clip attribute
-        const clipMatch = text.match(/data-tradingview-clip="([^"]+)"/);
-        if (!clipMatch) {
-          console.log('❌ Could not extract clip data from attribute')
-          return result
-        }
-        
-        console.log('🔓 Raw clip data:', clipMatch[1])
-        
-        // Unescape the HTML entities
-        const jsonStr = clipMatch[1]
-          .replace(/&quot;/g, '"')
-          .replace(/&amp;/g, '&')
-          .replace(/&lt;/g, '<')
-          .replace(/&gt;/g, '>')
-        
-        console.log('📝 Unescaped JSON string:', jsonStr)
-        
-        const clipData = JSON.parse(jsonStr)
-        console.log('📊 Parsed clip data:', clipData)
-        
-        if (!clipData.sources || !clipData.sources[0] || !clipData.sources[0].source) {
-          console.log('❌ Invalid clip data structure')
-          return result
-        }
-        
-        const source = clipData.sources[0].source
-        console.log('🎯 Source data:', source)
-        
-        // 2. EXTRACT TRADE DATE (CRITICAL)
-        if (source.points && source.points.length > 0) {
-          const lastPoint = source.points[source.points.length - 1]
-          if (lastPoint.time_t) {
-            const tradeDate = new Date(lastPoint.time_t * 1000)
-            result.tradeDate = tradeDate.toISOString().split('T')[0]
-            console.log('📅 Extracted trade date:', result.tradeDate)
-          }
-        }
-        
-        // 3. EXTRACT SYMBOL
-        if (source.state && source.state.symbol) {
-          const symbolString = source.state.symbol
-          // Handle formats: "CME_MINI:MNQ1!" -> "MNQ1!"
-          result.ticker = symbolString.includes(':') 
-            ? symbolString.split(':')[1] 
-            : symbolString
-          console.log('🏷️ Extracted symbol:', result.ticker)
-        }
-        
-        // 4. DETERMINE DIRECTION
-        if (source.type) {
-          if (source.type.includes('Short') || source.type.includes('RiskRewardShort')) {
-            result.direction = 'Short'
-          } else if (source.type.includes('Long') || source.type.includes('RiskRewardLong')) {
-            result.direction = 'Long'
-          }
-          console.log('🎯 Detected direction:', result.direction, 'from type:', source.type)
-        }
-        
-        // 5. EXTRACT PRICES
-        if (source.points && source.points.length > 0) {
-          const prices = source.points.map((p: any) => p.price).filter((p: any) => p != null)
-          const uniquePrices = [...new Set(prices)]
-          console.log('💰 All prices:', prices)
-          console.log('💎 Unique prices:', uniquePrices)
+        const clipMatch = text.match(/data-tradingview-clip="([^"]+)"/)
+        if (clipMatch) {
+          const jsonStr = clipMatch[1]
+            .replace(/&quot;/g, '"')
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
           
-          if (uniquePrices.length >= 2) {
-            // Calculate entry (most frequent price)
-            const entryFreq: Record<string, number> = {}
-            prices.forEach((p: any) => entryFreq[p] = (entryFreq[p] || 0) + 1)
-            const entryPrice = Object.keys(entryFreq).reduce((a, b) => 
-              entryFreq[a] > entryFreq[b] ? a : b)
+          const clipData = JSON.parse(jsonStr)
+          
+          if (clipData.sources?.[0]?.source) {
+            const source = clipData.sources[0].source
             
-            result.entryPrice = parseFloat(entryPrice)
-            console.log('🎯 Entry price:', result.entryPrice)
-            
-            // Calculate stop/target from TradingView levels
-            if (source.state && source.state.stopLevel && source.state.profitLevel && result.entryPrice) {
-              const direction = result.direction
-              if (direction === 'Short') {
-                result.stopLoss = result.entryPrice + (Number(source.state.stopLevel) / 4)
-                result.takeProfit = result.entryPrice - (Number(source.state.profitLevel) / 4)
-              } else {
-                result.stopLoss = result.entryPrice - (Number(source.state.stopLevel) / 4)
-                result.takeProfit = result.entryPrice + (Number(source.state.profitLevel) / 4)
-              }
-              console.log('🛡️ Stop Loss:', result.stopLoss)
-              console.log('🎯 Take Profit:', result.takeProfit)
+            // Extract basic trade info
+            if (source.state?.symbol) {
+              result.ticker = source.state.symbol.includes(':') 
+                ? source.state.symbol.split(':')[1] 
+                : source.state.symbol
             }
-          } else if (uniquePrices.length === 1) {
-            // Single price level
-            result.entryPrice = Number(uniquePrices[0])
-            console.log('🎯 Single price level:', result.entryPrice)
-          }
-          
-          // 6. DETERMINE OUTCOME & P&L
-          const currentPrice = prices[prices.length - 1]
-          
-          if (result.direction && result.entryPrice && currentPrice) {
-            // Check if exit price equals entry price (breakeven scenario)
-            const priceThreshold = 0.01 // Small threshold for price comparison
-            if (Math.abs(currentPrice - result.entryPrice) <= priceThreshold) {
-              result.outcome = 'breakeven'
-              result.exitPrice = result.entryPrice
-              result.actualPnL = 0
-              console.log('🟡 Detected breakeven trade: exit price equals entry price')
-            } else if (result.stopLoss && result.takeProfit) {
-              // Original logic for trades with explicit stop/target levels
-              if (result.direction === 'Short') {
-                const stopDistance = Math.abs(currentPrice - result.stopLoss)
-                const targetDistance = Math.abs(currentPrice - result.takeProfit)
-                
-                if (stopDistance < targetDistance) {
-                  result.outcome = 'loss'
-                  result.exitPrice = result.stopLoss
-                  result.actualPnL = -(source.state?.riskSize || 125)
-                } else {
-                  result.outcome = 'win'
-                  result.exitPrice = result.takeProfit
-                  const riskPoints = Math.abs(result.stopLoss - result.entryPrice)
-                  const profitPoints = Math.abs(result.takeProfit - result.entryPrice)
-                  const rrRatio = profitPoints / riskPoints
-                  result.actualPnL = (source.state?.riskSize || 125) * rrRatio
-                }
-              } else if (result.direction === 'Long') {
-                const stopDistance = Math.abs(currentPrice - result.stopLoss)
-                const targetDistance = Math.abs(currentPrice - result.takeProfit)
-                
-                if (stopDistance < targetDistance) {
-                  result.outcome = 'loss'
-                  result.exitPrice = result.stopLoss
-                  result.actualPnL = -(source.state?.riskSize || 125)
-                } else {
-                  result.outcome = 'win'
-                  result.exitPrice = result.takeProfit
-                  const riskPoints = Math.abs(result.stopLoss - result.entryPrice)
-                  const profitPoints = Math.abs(result.takeProfit - result.entryPrice)
-                  const rrRatio = profitPoints / riskPoints
-                  result.actualPnL = (source.state?.riskSize || 125) * rrRatio
-                }
-              }
-            } else {
-              // When no explicit stop/target but we have price movement
-              result.exitPrice = currentPrice
-              const priceDiff = result.direction === 'Long' 
-                ? currentPrice - result.entryPrice 
-                : result.entryPrice - currentPrice
-              
-              if (Math.abs(priceDiff) <= priceThreshold) {
-                result.outcome = 'breakeven'
-                result.actualPnL = 0
-              } else if (priceDiff > 0) {
-                result.outcome = 'win'
-                // Estimate P&L based on price movement
-                const pointValue = source.state?.riskSize || 125
-                result.actualPnL = Math.abs(priceDiff) * (pointValue / 10) // Rough estimation
-              } else {
-                result.outcome = 'loss'
-                const pointValue = source.state?.riskSize || 125
-                result.actualPnL = -Math.abs(priceDiff) * (pointValue / 10) // Rough estimation
+            
+            if (source.type?.includes('Short')) {
+              result.direction = 'Short'
+            } else if (source.type?.includes('Long')) {
+              result.direction = 'Long'
+            }
+            
+            if (source.points?.length > 0) {
+              const prices = source.points.map((p: { price: number }) => p.price).filter((p: number) => p != null)
+              if (prices.length > 0) {
+                result.entryPrice = prices[0]
               }
             }
-            console.log('📊 Outcome:', result.outcome)
-            console.log('💰 P&L:', result.actualPnL)
-          }
-          
-          // 7. CONTRACT QUANTITY HANDLING
-          if (source.state && source.state.qty) {
-            const originalQty = source.state.qty
-            const symbol = result.ticker || ''
-            const isFutures = symbol.includes('!') || symbol.includes('CME')
-            
-            if (isFutures) {
-              // Round to whole contracts for futures
-              result.quantity = Math.round(originalQty)
-              const riskMultiplier = result.quantity / originalQty
-              result.actualRisk = (source.state.riskSize || 125) * riskMultiplier
-              
-              if (riskMultiplier > 1.25) {
-                result.riskAdjustment = 'moderate_risk'
-              } else if (riskMultiplier < 0.8) {
-                result.riskAdjustment = 'lower_risk'
-              }
-            } else {
-              // CFDs - use exact quantity
-              result.quantity = originalQty
-              result.actualRisk = source.state.riskSize || 125
-            }
-            console.log('📈 Quantity:', result.quantity)
           }
         }
-        
-        console.log('✅ Successfully parsed TradingView clip data:', result)
-        return result
-        
-      } catch (error) {
-        console.error('❌ Error parsing TradingView clip data:', error)
-        // Fall through to backup parsing
+      } catch {
+        // Fall through to text parsing
       }
     }
     
-    // Fallback to original text parsing if clip data not found or failed
-    console.log('📝 Falling back to text parsing...')
-    return fallbackTextParsing(text)
-  }, [])
-
-  // Fallback parsing for plain text or when clip data fails
-  const fallbackTextParsing = useCallback((text: string): ParsedTrade => {
-    const result: ParsedTrade = { originalText: text }
-    
-    // Clean the text
-    const cleanText = text.trim().replace(/\s+/g, ' ')
-    
-    // Try to extract ticker (common patterns)
-    const tickerPatterns = [
-      /([A-Z]{1,5})\s+(?:Long|Short)/i,
-      /(?:Symbol|Ticker):\s*([A-Z]{1,5})/i,
-      /^([A-Z]{1,5})\s/,
-      /\b([A-Z]{2,5})\b/
-    ]
-    
-    for (const pattern of tickerPatterns) {
-      const match = cleanText.match(pattern)
-      if (match) {
-        result.ticker = match[1].toUpperCase()
-        break
+    // Basic text parsing fallback
+    if (!result.ticker || !result.entryPrice) {
+      const cleanText = text.trim().replace(/\s+/g, ' ')
+      
+      // Extract ticker
+      const tickerMatch = cleanText.match(/([A-Z]{1,5})\s+(?:Long|Short)/i) || 
+                         cleanText.match(/(?:Symbol|Ticker):\s*([A-Z]{1,5})/i)
+      if (tickerMatch) {
+        result.ticker = tickerMatch[1].toUpperCase()
       }
-    }
-    
-    // Extract direction
-    if (/\b(?:long|buy)\b/i.test(cleanText)) {
-      result.direction = 'Long'
-    } else if (/\b(?:short|sell)\b/i.test(cleanText)) {
-      result.direction = 'Short'
-    }
-    
-    // Extract prices with various patterns
-    const pricePatterns = [
-      // Entry patterns
-      { key: 'entryPrice', patterns: [
-        /(?:entry|enter|price):\s*\$?(\d+\.?\d*)/i,
-        /(?:@|at)\s*\$?(\d+\.?\d*)/,
-        /\b(\d+\.?\d{2,})\b/
-      ]},
-      // Stop Loss patterns
-      { key: 'stopLoss', patterns: [
-        /(?:stop|sl|stop loss):\s*\$?(\d+\.?\d*)/i,
-        /(?:stop|sl)\s*\$?(\d+\.?\d*)/i
-      ]},
-      // Take Profit patterns
-      { key: 'takeProfit', patterns: [
-        /(?:take profit|tp|target):\s*\$?(\d+\.?\d*)/i,
-        /(?:tp|target)\s*\$?(\d+\.?\d*)/i
-      ]}
-    ]
-    
-    for (const { key, patterns } of pricePatterns) {
-      for (const pattern of patterns) {
-        const match = cleanText.match(pattern)
-        if (match) {
-          const price = parseFloat(match[1])
-          if (!isNaN(price) && price > 0) {
-            (result as any)[key] = price
-            break
-          }
-        }
+      
+      // Extract direction
+      if (/\b(?:long|buy)\b/i.test(cleanText)) {
+        result.direction = 'Long'
+      } else if (/\b(?:short|sell)\b/i.test(cleanText)) {
+        result.direction = 'Short'
       }
-    }
-    
-    // Extract quantity
-    const qtyPatterns = [
-      /(?:qty|quantity|size|shares?):\s*(\d+)/i,
-      /(\d+)\s*(?:shares?|units?)/i
-    ]
-    
-    for (const pattern of qtyPatterns) {
-      const match = cleanText.match(pattern)
-      if (match) {
-        const qty = parseInt(match[1])
-        if (!isNaN(qty) && qty > 0) {
-          result.quantity = qty
-          break
+      
+      // Extract price
+      const priceMatch = cleanText.match(/(?:entry|price|@):\s*\$?(\d+\.?\d*)/i) ||
+                        cleanText.match(/\b(\d+\.?\d{2,})\b/)
+      if (priceMatch) {
+        const price = parseFloat(priceMatch[1])
+        if (!isNaN(price) && price > 0) {
+          result.entryPrice = price
         }
       }
     }
@@ -348,23 +125,19 @@ export function TradePaste() {
     setShowSuccess(false)
     
     try {
-      // Get clipboard data - check for images first, then text
       const clipboardData = e.clipboardData
       
-      // Check for images first (screenshots)
+      // Check for images first
       const items = Array.from(clipboardData.items)
       const imageItem = items.find(item => item.type.startsWith('image/'))
       
       if (imageItem) {
-        console.log('📸 Found image in clipboard')
         const imageFile = imageItem.getAsFile()
         if (imageFile) {
           const reader = new FileReader()
           reader.onload = (event) => {
             const base64Image = event.target?.result as string
-            console.log('📷 Image converted to base64')
             
-            // If we already have parsed trade data, add screenshot to it
             if (parsedTrade) {
               setParsedTrade({
                 ...parsedTrade,
@@ -374,7 +147,6 @@ export function TradePaste() {
               setShowSuccess(true)
               setTimeout(() => setShowSuccess(false), 2000)
             } else {
-              // Create a basic trade entry for screenshot-only paste
               const screenshotTrade: ParsedTrade = {
                 originalText: 'Screenshot import',
                 screenshot: base64Image,
@@ -389,205 +161,18 @@ export function TradePaste() {
         }
       }
       
-      // If no image, proceed with text data processing (existing logic)
-      const types = Array.from(clipboardData.types)
-      console.log('🔍 Available clipboard types:', types)
+      // Get text data
+      const textData = clipboardData.getData('text/plain') || 
+                      clipboardData.getData('text/html') || 
+                      clipboardData.getData('text')
       
-      let bestText = ''
-      let parsedData: any = null
-      let allClipboardData: Record<string, any> = {}
-      
-      // Extract ALL clipboard data types for analysis
-      for (const type of types) {
-        try {
-          const data = clipboardData.getData(type)
-          allClipboardData[type] = data
-          console.log(`📋 ${type}:`, data)
-          
-          // If this data is longer than what we have, consider it
-          if (data && data.length > bestText.length) {
-            bestText = data
-          }
-        } catch (e) {
-          console.log(`❌ Failed to get ${type}:`, e)
-        }
-      }
-      
-      console.log('📦 All clipboard data:', allClipboardData)
-      
-      // Try to access clipboard using the Clipboard API for more data types
-      if (navigator.clipboard && navigator.clipboard.read) {
-        try {
-          const clipboardItems = await navigator.clipboard.read()
-          console.log('🔧 Clipboard API items:', clipboardItems)
-          
-          for (const item of clipboardItems) {
-            console.log('📄 Clipboard item types:', item.types)
-            
-            for (const type of item.types) {
-              try {
-                const blob = await item.getType(type)
-                const text = await blob.text()
-                console.log(`🗂️ Clipboard API ${type}:`, text)
-                
-                allClipboardData[`api_${type}`] = text
-                
-                if (text && text.length > bestText.length) {
-                  bestText = text
-                }
-              } catch (e) {
-                console.log(`❌ Failed to get Clipboard API ${type}:`, e)
-              }
-            }
-          }
-        } catch (e) {
-          console.log('❌ Clipboard API not available or failed:', e)
-        }
-      }
-      
-      // Special handling for HTML data
-      if (allClipboardData['text/html']) {
-        const htmlData = allClipboardData['text/html']
-        console.log('🌐 Analyzing HTML data...')
-        
-        // Parse HTML to extract ALL possible data
-        const parser = new DOMParser()
-        const doc = parser.parseFromString(htmlData, 'text/html')
-        
-        // Get ALL attributes from ALL elements
-        const allElements = doc.querySelectorAll('*')
-        const extractedData: Record<string, any> = {}
-        
-        allElements.forEach((el, index) => {
-          const tagInfo: any = {
-            tag: el.tagName,
-            textContent: el.textContent,
-            attributes: {}
-          }
-          
-          // Extract ALL attributes
-          Array.from(el.attributes).forEach(attr => {
-            tagInfo.attributes[attr.name] = attr.value
-          })
-          
-          if (Object.keys(tagInfo.attributes).length > 0 || tagInfo.textContent?.trim()) {
-            extractedData[`element_${index}`] = tagInfo
-          }
-        })
-        
-        console.log('🏷️ Extracted HTML elements:', extractedData)
-        
-        // Look for any data that might contain trading info
-        Object.values(extractedData).forEach((elementData: any) => {
-          const text = JSON.stringify(elementData).toLowerCase()
-          if (text.includes('price') || text.includes('entry') || text.includes('stop') || text.includes('target') || text.includes('symbol')) {
-            console.log('💰 Found potential trading data in element:', elementData)
-          }
-        })
-      }
-      
-      // Try parsing as base64 or other encodings
-      for (const [type, data] of Object.entries(allClipboardData)) {
-        if (typeof data === 'string' && data.length > 10) {
-          // Try base64 decode
-          try {
-            const decoded = atob(data)
-            if (decoded && decoded.includes('{')) {
-              console.log(`🔓 Base64 decoded ${type}:`, decoded)
-              try {
-                const jsonData = JSON.parse(decoded)
-                console.log(`📊 JSON from base64 ${type}:`, jsonData)
-                parsedData = { ...parsedData, ...jsonData }
-              } catch (e) {
-                // Not JSON
-              }
-            }
-          } catch (e) {
-            // Not base64
-          }
-          
-          // Try URL decode
-          try {
-            const urlDecoded = decodeURIComponent(data)
-            if (urlDecoded !== data) {
-              console.log(`🔗 URL decoded ${type}:`, urlDecoded)
-              if (urlDecoded.includes('{')) {
-                try {
-                  const jsonData = JSON.parse(urlDecoded)
-                  console.log(`📊 JSON from URL decode ${type}:`, jsonData)
-                  parsedData = { ...parsedData, ...jsonData }
-                } catch (e) {
-                  // Not JSON
-                }
-              }
-            }
-          } catch (e) {
-            // Not URL encoded
-          }
-          
-          // Look for JSON patterns anywhere in the data
-          const jsonMatches = data.match(/\{[^}]*\}/g)
-          if (jsonMatches) {
-            jsonMatches.forEach((match, index) => {
-              try {
-                const jsonData = JSON.parse(match)
-                console.log(`📊 Found JSON pattern ${index} in ${type}:`, jsonData)
-                parsedData = { ...parsedData, ...jsonData }
-              } catch (e) {
-                // Not valid JSON
-              }
-            })
-          }
-        }
-      }
-      
-      // Look for any TradingView specific patterns in ALL data
-      const allDataString = JSON.stringify(allClipboardData).toLowerCase()
-      console.log('🔍 Searching for TradingView patterns in all data...')
-      
-      // Common TradingView data patterns
-      const tvPatterns = [
-        /symbol['":\s]*([a-z0-9]+)/gi,
-        /ticker['":\s]*([a-z0-9]+)/gi,
-        /price['":\s]*(\d+\.?\d*)/gi,
-        /entry['":\s]*(\d+\.?\d*)/gi,
-        /stop['":\s]*(\d+\.?\d*)/gi,
-        /target['":\s]*(\d+\.?\d*)/gi,
-        /side['":\s]*([a-z]+)/gi,
-        /direction['":\s]*([a-z]+)/gi
-      ]
-      
-      tvPatterns.forEach((pattern, index) => {
-        const matches = allDataString.match(pattern)
-        if (matches) {
-          console.log(`🎯 Pattern ${index} matches:`, matches)
-        }
-      })
-      
-      setPastedText(bestText)
-      
-      if (!bestText.trim()) {
+      if (!textData.trim()) {
         setError('No text found in clipboard')
         setParsedTrade(null)
         return
       }
       
-      // If we found structured JSON data, use it directly
-      let parsed: ParsedTrade
-      if (parsedData && typeof parsedData === 'object' && Object.keys(parsedData).length > 0) {
-        console.log('✅ Using structured data:', parsedData)
-        parsed = extractFromStructuredData(parsedData, bestText)
-      } else {
-        console.log('📝 Falling back to text parsing...')
-        parsed = parseTradingViewData(bestText)
-      }
-      
-      // Enhanced parsing for TradingView specific patterns
-      if (!parsed.ticker || !parsed.entryPrice) {
-        parsed = enhancedTradingViewParsing(bestText, parsed)
-      }
-      
-      console.log('🎯 Final parsed result:', parsed)
+      const parsed = parseTradingViewData(textData)
       
       // Validate minimum required fields
       if (!parsed.direction && !parsed.entryPrice && !parsed.ticker) {
@@ -598,120 +183,16 @@ export function TradePaste() {
       
       setParsedTrade(parsed)
       
-      // Keep input focused for immediate screenshot pasting
-      // The visual state will update while staying ready to paste
     } catch (err) {
-      console.error('❌ Paste error:', err)
+      console.error('Paste error:', err)
       setError('Failed to parse trading data. Please check the format.')
       setParsedTrade(null)
     }
-  }, [parsedTrade])
-
-  // New function to extract data from structured JSON
-  const extractFromStructuredData = useCallback((data: any, fallbackText: string): ParsedTrade => {
-    const result: ParsedTrade = { originalText: fallbackText }
-    
-    // Common keys that might contain our data
-    const symbolKeys = ['symbol', 'ticker', 'instrument', 'asset', 'pair']
-    const priceKeys = ['price', 'entry', 'entryPrice', 'open', 'level']
-    const stopKeys = ['stop', 'stopLoss', 'sl', 'stopPrice']
-    const targetKeys = ['target', 'takeProfit', 'tp', 'targetPrice']
-    const directionKeys = ['direction', 'side', 'type', 'position']
-    const qtyKeys = ['quantity', 'qty', 'size', 'amount', 'volume']
-    
-    // Recursive function to search through nested objects
-    function findValue(obj: any, keys: string[]): any {
-      for (const key of keys) {
-        if (obj && typeof obj === 'object') {
-          if (obj[key] !== undefined) return obj[key]
-          
-          // Search nested objects
-          for (const prop in obj) {
-            if (typeof obj[prop] === 'object') {
-              const nested = findValue(obj[prop], keys)
-              if (nested !== undefined) return nested
-            }
-          }
-        }
-      }
-      return undefined
-    }
-    
-    // Extract data
-    const symbol = findValue(data, symbolKeys)
-    if (symbol) result.ticker = String(symbol).toUpperCase()
-    
-    const price = findValue(data, priceKeys)
-    if (price && !isNaN(Number(price))) result.entryPrice = Number(price)
-    
-    const stop = findValue(data, stopKeys)
-    if (stop && !isNaN(Number(stop))) result.stopLoss = Number(stop)
-    
-    const target = findValue(data, targetKeys)
-    if (target && !isNaN(Number(target))) result.takeProfit = Number(target)
-    
-    const direction = findValue(data, directionKeys)
-    if (direction) {
-      const dir = String(direction).toLowerCase()
-      if (dir.includes('long') || dir.includes('buy')) result.direction = 'Long'
-      else if (dir.includes('short') || dir.includes('sell')) result.direction = 'Short'
-    }
-    
-    const qty = findValue(data, qtyKeys)
-    if (qty && !isNaN(Number(qty))) result.quantity = Number(qty)
-    
-    return result
-  }, [])
-
-  // Enhanced parsing for TradingView specific formats
-  const enhancedTradingViewParsing = useCallback((text: string, existing: ParsedTrade): ParsedTrade => {
-    const result = { ...existing }
-    
-    // TradingView specific patterns
-    const patterns = [
-      // Position tool formats
-      /Position:\s*([A-Z]+)\s*(Long|Short)\s*Entry:\s*\$?([\d.]+)/i,
-      /([A-Z]+).*?(Long|Short).*?@\s*\$?([\d.]+)/i,
-      /Symbol:\s*([A-Z]+).*?Side:\s*(Long|Short).*?Price:\s*\$?([\d.]+)/i,
-      
-      // Alert formats
-      /([A-Z]+)\s+Alert.*?(Long|Short).*?([\d.]+)/i,
-      
-      // Drawing tool formats
-      /([A-Z]+)\s*(Buy|Sell|Long|Short).*?([\d.]+)/i
-    ]
-    
-    for (const pattern of patterns) {
-      const match = text.match(pattern)
-      if (match) {
-        if (!result.ticker && match[1]) result.ticker = match[1].toUpperCase()
-        if (!result.direction && match[2]) {
-          const dir = match[2].toLowerCase()
-          result.direction = (dir === 'long' || dir === 'buy') ? 'Long' : 'Short'
-        }
-        if (!result.entryPrice && match[3]) {
-          const price = parseFloat(match[3])
-          if (!isNaN(price)) result.entryPrice = price
-        }
-        break
-      }
-    }
-    
-    // Look for hidden Unicode characters or special formatting
-    const cleanedText = text.replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width chars
-    const specialChars = text.match(/[\u0000-\u001F\u007F-\u009F]/g) // Control characters
-    
-    if (specialChars) {
-      console.log('Found special characters:', specialChars)
-    }
-    
-    return result
-  }, [])
+  }, [parsedTrade, parseTradingViewData])
 
   const handleSaveTrade = useCallback(() => {
     if (!parsedTrade) return
     
-    // Validate required fields
     if (!parsedTrade.ticker || !parsedTrade.direction || !parsedTrade.entryPrice) {
       setError('Missing required fields: ticker, direction, and entry price are required.')
       return
@@ -719,10 +200,9 @@ export function TradePaste() {
     
     setIsSaving(true)
     
-    // Convert ParsedTrade to ContextTrade format
     const newTrade: Omit<ContextTrade, 'id'> = {
       symbol: parsedTrade.ticker,
-      company: `${parsedTrade.ticker} Futures`, // Default company name
+      company: `${parsedTrade.ticker} Futures`,
       type: parsedTrade.direction === 'Long' ? 'long' : 'short',
       quantity: parsedTrade.quantity || 1,
       entryPrice: parsedTrade.entryPrice,
@@ -733,27 +213,24 @@ export function TradePaste() {
       status: parsedTrade.outcome ? 'closed' : 'open',
       notes: journalText || undefined,
       strategy: 'TradingView Import',
-      screenshot: parsedTrade.screenshot // Include screenshot
+      screenshot: parsedTrade.screenshot
     }
     
     addTrade(newTrade)
     setShowSuccess(true)
     setError('')
     
-    // Smooth transition - shorter delay and smoother clearing
     setTimeout(() => {
       setShowSuccess(false)
       setIsSaving(false)
       
-      // Fade out effect by clearing gradually
       setTimeout(() => {
-        setPastedText('')
         setParsedTrade(null)
         setJournalText('')
         setIsEditingJournal(false)
         setIsScreenshotMode(false)
-      }, 300) // Small delay for smooth transition
-    }, 1500) // Shorter success message duration
+      }, 300)
+    }, 1500)
   }, [parsedTrade, journalText, addTrade])
 
   const formatPrice = (price: number) => `$${price.toFixed(2)}`
@@ -785,7 +262,7 @@ export function TradePaste() {
                   <p className="text-sm font-medium text-blue-600">📊 Position Tool:</p>
                   <ol className="text-sm space-y-1 ml-2">
                     <li>1. Right-click position tool in TradingView</li>
-                    <li>2. Select "Copy" or press <kbd className="px-1 py-0.5 bg-background border rounded text-xs">⌘ C</kbd></li>
+                    <li>2. Select &quot;Copy&quot; or press <kbd className="px-1 py-0.5 bg-background border rounded text-xs">⌘ C</kbd></li>
                     <li>3. Click paste zone below and press <kbd className="px-1 py-0.5 bg-background border rounded text-xs">⌘ V</kbd></li>
                   </ol>
                 </div>
@@ -810,7 +287,7 @@ export function TradePaste() {
                   <p className="text-sm font-medium text-blue-600">📊 Position Tool:</p>
                   <ol className="text-sm space-y-1 ml-2">
                     <li>1. Right-click position tool in TradingView</li>
-                    <li>2. Select "Copy" or press <kbd className="px-1 py-0.5 bg-background border rounded text-xs">Ctrl C</kbd></li>
+                    <li>2. Select &quot;Copy&quot; or press <kbd className="px-1 py-0.5 bg-background border rounded text-xs">Ctrl C</kbd></li>
                     <li>3. Click paste zone below and press <kbd className="px-1 py-0.5 bg-background border rounded text-xs">Ctrl V</kbd></li>
                   </ol>
                 </div>
@@ -922,7 +399,7 @@ export function TradePaste() {
         </CardContent>
       </Card>
 
-      {/* Parsed Trade Summary - Only show when we have data */}
+      {/* Parsed Trade Summary */}
       {parsedTrade && (
         <Card className={`transition-all duration-300 ${isSaving ? 'opacity-75 scale-[0.98]' : 'opacity-100 scale-100'}`}>
           <CardHeader>
@@ -1002,160 +479,19 @@ export function TradePaste() {
 
             <Separator />
 
-            {/* Risk Management */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-                  <Shield className="h-3 w-3" />
-                  Stop Loss
-                </label>
-                <div className="text-base font-medium">
-                  {parsedTrade.stopLoss ? formatPrice(parsedTrade.stopLoss) : 
-                   parsedTrade.outcome === 'breakeven' ? 'Exit at entry (breakeven)' : 'Not set'}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-                  <Target className="h-3 w-3" />
-                  Take Profit
-                </label>
-                <div className="text-base font-medium">
-                  {parsedTrade.takeProfit ? formatPrice(parsedTrade.takeProfit) : 
-                   parsedTrade.outcome === 'breakeven' ? 'Exit at entry (breakeven)' : 'Not set'}
-                </div>
-              </div>
-            </div>
-
-            {/* Outcome & P&L Section */}
-            {(parsedTrade.outcome || parsedTrade.actualPnL !== undefined || parsedTrade.exitPrice) && (
-              <>
-                <Separator />
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {parsedTrade.outcome && (
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-muted-foreground">Outcome</label>
-                      <Badge 
-                        variant={
-                          parsedTrade.outcome === 'win' ? 'default' : 
-                          parsedTrade.outcome === 'loss' ? 'destructive' : 
-                          'secondary'
-                        }
-                        className={`text-base px-3 py-1 ${
-                          parsedTrade.outcome === 'breakeven' ? 'bg-yellow-100 border-yellow-300 text-yellow-800' : ''
-                        }`}
-                      >
-                        {parsedTrade.outcome === 'win' ? '🎯 Win' : 
-                         parsedTrade.outcome === 'loss' ? '❌ Loss' : 
-                         '🟡 Breakeven'}
-                      </Badge>
-                    </div>
-                  )}
-                  
-                  {parsedTrade.exitPrice && (
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-muted-foreground">Exit Price</label>
-                      <div className="text-base font-medium">
-                        {formatPrice(parsedTrade.exitPrice)}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {parsedTrade.actualPnL !== undefined && (
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-muted-foreground">P&L</label>
-                      <div className={`text-base font-medium ${
-                        parsedTrade.actualPnL > 0 ? 'text-green-600' : 
-                        parsedTrade.actualPnL < 0 ? 'text-red-600' : 
-                        'text-yellow-600 font-semibold'
-                      }`}>
-                        {parsedTrade.actualPnL === 0 ? 
-                          '🟡 $0.00 (Breakeven)' : 
-                          `${parsedTrade.actualPnL >= 0 ? '+' : ''}${formatPrice(parsedTrade.actualPnL)}`
-                        }
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-
-            {/* Position Size & Risk */}
-            {(parsedTrade.quantity || parsedTrade.actualRisk) && (
-              <>
-                <Separator />
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-muted-foreground">Quantity</label>
-                    <div className="flex items-center gap-2">
-                      {parsedTrade.quantity ? (
-                        <span className="text-base font-medium">{parsedTrade.quantity}</span>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">100 (default)</span>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {parsedTrade.actualRisk && (
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-muted-foreground">Risk Amount</label>
-                      <div className="text-base font-medium">
-                        {formatPrice(parsedTrade.actualRisk)}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {parsedTrade.riskAdjustment && (
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-muted-foreground">Risk Adjustment</label>
-                      <Badge 
-                        variant={parsedTrade.riskAdjustment === 'moderate_risk' ? 'destructive' : 'secondary'}
-                        className="text-sm px-2 py-1"
-                      >
-                        {parsedTrade.riskAdjustment.replace('_', ' ')}
-                      </Badge>
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-
-            <Separator />
-
-            {/* Save Button */}
-            <div className="flex justify-end">
-              <Button 
-                onClick={handleSaveTrade}
-                disabled={!parsedTrade.ticker || !parsedTrade.direction || !parsedTrade.entryPrice || isSaving}
-                className="flex items-center gap-2"
-              >
-                {isSaving ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="h-4 w-4" />
-                    ✅ Save Trade
-                  </>
-                )}
-              </Button>
-            </div>
-            
             {/* Screenshot Section */}
             {parsedTrade.screenshot && (
               <>
-                <Separator />
                 <div className="space-y-3">
                   <label className="text-sm font-medium text-muted-foreground">Screenshot</label>
                   <div className="relative group">
-                    <img 
+                    <Image 
                       src={parsedTrade.screenshot} 
                       alt="Trade screenshot" 
                       className="w-full max-w-md rounded-lg border shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                      width={400}
+                      height={300}
                       onClick={() => {
-                        // Open image in new tab for full view
                         const newWindow = window.open()
                         if (newWindow) {
                           newWindow.document.write(`<img src="${parsedTrade.screenshot}" style="max-width: 100%; height: auto;" />`)
@@ -1167,11 +503,11 @@ export function TradePaste() {
                     </div>
                   </div>
                 </div>
+                <Separator />
               </>
             )}
             
             {/* Journal Entry Section */}
-            <Separator />
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium text-muted-foreground">Journal Entry</label>
@@ -1208,6 +544,29 @@ export function TradePaste() {
                   )}
                 </div>
               )}
+            </div>
+
+            <Separator />
+
+            {/* Save Button */}
+            <div className="flex justify-end">
+              <Button 
+                onClick={handleSaveTrade}
+                disabled={!parsedTrade.ticker || !parsedTrade.direction || !parsedTrade.entryPrice || isSaving}
+                className="flex items-center gap-2"
+              >
+                {isSaving ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="h-4 w-4" />
+                    ✅ Save Trade
+                  </>
+                )}
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -1246,14 +605,12 @@ export function TradePaste() {
                         {trade.quantity} contracts
                       </span>
                       
-                      {/* Screenshot indicator */}
                       {trade.screenshot && (
                         <Badge variant="outline" className="text-xs bg-blue-50 border-blue-200 text-blue-700">
                           📸 Screenshot
                         </Badge>
                       )}
                       
-                      {/* Journal indicator */}
                       {trade.notes && (
                         <Badge variant="outline" className="text-xs bg-green-50 border-green-200 text-green-700">
                           📝 Journal
@@ -1332,10 +689,12 @@ export function TradePaste() {
                 <div className="space-y-3">
                   <label className="text-sm font-medium text-muted-foreground">Screenshot</label>
                   <div className="relative group">
-                    <img 
+                    <Image 
                       src={selectedTrade.screenshot} 
                       alt="Trade screenshot" 
                       className="w-full rounded-lg border shadow-sm cursor-pointer max-h-96 object-contain bg-muted/20"
+                      width={600}
+                      height={400}
                       onClick={() => {
                         const newWindow = window.open()
                         if (newWindow) {
@@ -1396,7 +755,6 @@ export function TradePaste() {
                       <Button 
                         size="sm"
                         onClick={() => {
-                          // Update the trade with new journal entry
                           updateTrade(selectedTrade.id, { ...selectedTrade, notes: journalText })
                           setSelectedTrade({ ...selectedTrade, notes: journalText })
                           setIsEditingJournal(false)
