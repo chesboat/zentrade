@@ -42,7 +42,7 @@ interface DayStats {
   hasJournal: boolean;
   isToday: boolean;
   trades: Trade[];
-  activities: any[];
+  activities: Trade[];
 }
 
 interface CalendarSummaryModalProps {
