@@ -380,10 +380,10 @@ export const getUserActivities = async (userId: string): Promise<Activity[]> => 
         // Manual sort by createdAt in memory
         return activities.sort((a, b) => {
           const aTime = a.createdAt && typeof a.createdAt === 'object' && 'seconds' in a.createdAt 
-            ? (a.createdAt as any).seconds 
+            ? (a.createdAt as { seconds: number }).seconds 
             : 0
           const bTime = b.createdAt && typeof b.createdAt === 'object' && 'seconds' in b.createdAt 
-            ? (b.createdAt as any).seconds 
+            ? (b.createdAt as { seconds: number }).seconds 
             : 0
           return bTime - aTime
         })
