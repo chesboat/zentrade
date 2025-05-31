@@ -1,36 +1,94 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Trading Journal
 
-## Getting Started
+A modern, intuitive web application for tracking trading performance, building consistent habits, and analyzing trading data. Built with Next.js, TypeScript, and Tailwind CSS.
 
-First, run the development server:
+## ✨ Features
 
+- **📊 Performance Dashboard** - Track your P&L, win rate, and key metrics
+- **📅 Calendar View** - Visual representation of trading activity and daily performance
+- **📈 Trade Analytics** - Detailed statistics and performance insights
+- **🖼️ Screenshot Support** - Attach chart screenshots to your trades
+- **📝 Trade Journal** - Add notes and insights to each trade
+- **🎯 Smart Nudges** - AI-powered suggestions for improvement
+- **📱 Mobile Responsive** - Works seamlessly on all devices
+- **🌙 Dark/Light Mode** - Toggle between themes
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js 18+ and npm
+
+### Installation
+
+1. Clone the repository:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone <your-repo-url>
+cd trading-journal
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Install dependencies:
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Run the development server:
+```bash
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-## Learn More
+## 📖 How to Use
 
-To learn more about Next.js, take a look at the following resources:
+1. **Add Your First Trade**: Use the "Add Trade" button or paste TradingView data directly
+2. **Upload Screenshots**: Paste or drop chart images to attach to trades
+3. **Track Performance**: View your progress on the dashboard and calendar
+4. **Analyze Results**: Use the analytics tools to identify patterns and improve
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🛠️ Built With
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Next.js 15** - React framework with App Router
+- **TypeScript** - Type-safe development
+- **Tailwind CSS** - Utility-first CSS framework
+- **Radix UI** - Accessible component primitives
+- **Lucide React** - Beautiful icon library
 
-## Deploy on Vercel
+## 📦 Project Structure
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+src/
+├── app/                 # Next.js app router pages
+├── components/          # Reusable UI components
+├── contexts/            # React context providers
+├── lib/                 # Utility functions
+├── utils/               # Helper functions
+└── mockData/            # Data types and interfaces
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🚀 Deployment
+
+### Deploy to Vercel (Recommended)
+
+1. Push your code to GitHub
+2. Connect your repository to [Vercel](https://vercel.com)
+3. Deploy with zero configuration
+
+### Build for Production
+
+```bash
+npm run build
+npm start
+```
+
+## 📄 License
+
+This project is open source and available under the [MIT License](LICENSE).
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 📧 Support
+
+If you have any questions or need help, please open an issue on GitHub.
