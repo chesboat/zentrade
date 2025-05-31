@@ -1,8 +1,10 @@
 "use client"
 
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
 import { 
   ArrowUp, 
   ArrowDown, 
@@ -13,12 +15,16 @@ import {
   Zap,
   Calendar,
   Clock,
-  Edit
+  Edit,
+  Trash2,
+  Save,
+  X
 } from "lucide-react"
 import { useTrades } from "@/contexts/TradesContext"
 import { useTraderProgress } from "@/hooks/useTraderProgress"
+import { useAuth } from "@/contexts/AuthContext"
 import { Trade } from "@/mockData/trades"
-import { Activity } from "@/services/xpService"
+import { Activity, updateActivity, deleteActivity } from "@/services/xpService"
 
 interface UnifiedActivity {
   id: string
@@ -51,7 +57,10 @@ const ActivityTypeConfig = {
 
 export function RecentActivity() {
   const { trades } = useTrades()
-  const { activities } = useTraderProgress()
+  const { activities, refreshProgress } = useTraderProgress()
+  const { user } = useAuth()
+  const [editingActivity, setEditingActivity] = useState<string | null>(null)
+  const [editedNotes, setEditedNotes] = useState('')
 
   const unifiedActivities = useMemo(() => {
     const tradeActivities: UnifiedActivity[] = trades.slice(0, 10).map(trade => ({
@@ -74,6 +83,44 @@ export function RecentActivity() {
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, 8) // Show top 8 most recent
   }, [trades, activities])
+
+  const handleEditActivity = (activity: Activity) => {
+    setEditingActivity(activity.id || '')
+    setEditedNotes(activity.notes)
+  }
+
+  const handleSaveActivity = async (activityId: string) => {
+    if (!user || !editedNotes.trim()) return
+
+    try {
+      await updateActivity(activityId, user.uid, { notes: editedNotes.trim() })
+      await refreshProgress() // Refresh to get updated data
+      setEditingActivity(null)
+      setEditedNotes('')
+    } catch (error) {
+      console.error('Error updating activity:', error)
+      alert('Failed to update activity. Please try again.')
+    }
+  }
+
+  const handleDeleteActivity = async (activityId: string) => {
+    if (!user) return
+    
+    if (confirm('Are you sure you want to delete this activity?')) {
+      try {
+        await deleteActivity(activityId, user.uid)
+        await refreshProgress() // Refresh to get updated data
+      } catch (error) {
+        console.error('Error deleting activity:', error)
+        alert('Failed to delete activity. Please try again.')
+      }
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setEditingActivity(null)
+    setEditedNotes('')
+  }
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -159,48 +206,113 @@ export function RecentActivity() {
 
   const renderActivityItem = (activity: Activity, unifiedActivity: UnifiedActivity) => {
     const config = ActivityTypeConfig[activity.type]
+    const isEditing = editingActivity === activity.id
     
     return (
       <div 
         key={unifiedActivity.id}
-        className="flex items-center justify-between p-4 hover:bg-muted/30 rounded-lg transition-colors cursor-pointer group"
+        className={`p-4 rounded-lg transition-colors cursor-pointer group border ${
+          isEditing ? 'border-primary bg-primary/5' : 'hover:bg-muted/30 border-transparent'
+        }`}
+        onClick={() => !isEditing && handleEditActivity(activity)}
       >
-        <div className="flex items-center space-x-3">
-          {/* Activity Icon */}
-          <div className={`
-            flex items-center justify-center w-10 h-10 rounded-full border
-            ${config.color}
-          `}>
-            {config.icon}
-          </div>
-
-          {/* Activity Info */}
-          <div className="space-y-1">
-            <div className="flex items-center space-x-2">
-              <span className="font-medium">{config.label}</span>
-              <Badge variant="outline" className="text-xs flex items-center gap-1">
-                <Zap className="h-3 w-3" />
-                +{config.xp} XP
-              </Badge>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center space-x-3">
+            {/* Activity Icon */}
+            <div className={`
+              flex items-center justify-center w-10 h-10 rounded-full border
+              ${config.color}
+            `}>
+              {config.icon}
             </div>
-            <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-              <Calendar className="h-3 w-3" />
-              <span>{formatDate(unifiedActivity.date)}</span>
-              <span>•</span>
-              <span className="truncate max-w-48">
-                {activity.notes.length > 40 
-                  ? `${activity.notes.substring(0, 40)}...` 
-                  : activity.notes
-                }
-              </span>
+
+            {/* Activity Info */}
+            <div className="space-y-1">
+              <div className="flex items-center space-x-2">
+                <span className="font-medium">{config.label}</span>
+                <Badge variant="outline" className="text-xs flex items-center gap-1">
+                  <Zap className="h-3 w-3" />
+                  +{config.xp} XP
+                </Badge>
+              </div>
+              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                <Calendar className="h-3 w-3" />
+                <span>{formatDate(unifiedActivity.date)}</span>
+              </div>
             </div>
           </div>
+
+          {/* Edit/Delete Controls */}
+          {!isEditing && (
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleEditActivity(activity)
+                }}
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleDeleteActivity(activity.id!)
+                }}
+                className="text-red-600 hover:text-red-700"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </div>
 
-        {/* Edit indicator */}
-        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-          <Edit className="h-4 w-4 text-muted-foreground" />
-        </div>
+        {/* Notes Content */}
+        {isEditing ? (
+          <div className="space-y-3">
+            <Textarea
+              value={editedNotes}
+              onChange={(e) => setEditedNotes(e.target.value)}
+              placeholder="Update your activity notes..."
+              className="min-h-20"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <div className="flex gap-2">
+              <Button 
+                size="sm" 
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleSaveActivity(activity.id!)
+                }}
+                disabled={!editedNotes.trim()}
+              >
+                <Save className="h-3 w-3 mr-1" />
+                Save
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleCancelEdit()
+                }}
+              >
+                <X className="h-3 w-3 mr-1" />
+                Cancel
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="text-sm text-muted-foreground">
+            {activity.notes.length > 100 
+              ? `${activity.notes.substring(0, 100)}...` 
+              : activity.notes
+            }
+          </div>
+        )}
       </div>
     )
   }

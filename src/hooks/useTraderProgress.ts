@@ -3,8 +3,8 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useTrades } from '@/contexts/TradesContext'
 import { 
   updateUserProgress, 
-  getUserActivities, 
   getMotivationalMessage,
+  getUserActivities,
   Activity 
 } from '@/services/xpService'
 import { doc, getDoc } from 'firebase/firestore'
@@ -17,47 +17,59 @@ export interface TraderProgressData {
   streak: number
   longestStreak: number
   motivationalMessage: string
-  todayXP: number
-  isLoading: boolean
+  lastActivityDate?: string
+  dailyXPLog: Record<string, number>
   activities: Activity[]
-  refreshProgress: () => Promise<void>
 }
 
-export function useTraderProgress(): TraderProgressData {
+export const useTraderProgress = () => {
   const { user } = useAuth()
-  const { trades } = useTrades()
-  const [progressData, setProgressData] = useState({
-    level: 1,
+  const { trades } = useTrades() // Get trades to trigger refresh on changes
+  const [progressData, setProgressData] = useState<TraderProgressData>({
     xp: 0,
+    level: 1,
     xpToNextLevel: 1000,
     streak: 0,
     longestStreak: 0,
-    todayXP: 0,
-    motivationalMessage: "Welcome to your trading journey!",
-    activities: [] as Activity[],
-    isLoading: true
+    motivationalMessage: 'Welcome to your trading journey!',
+    dailyXPLog: {},
+    activities: []
   })
+  const [isLoading, setIsLoading] = useState(true)
 
   const refreshProgress = useCallback(async () => {
-    if (!user) return
+    if (!user) {
+      setIsLoading(false)
+      return
+    }
 
     try {
-      setProgressData(prev => ({ ...prev, isLoading: true }))
+      setIsLoading(true)
       
-      const userRef = doc(db, 'users', user.uid)
-      const userSnap = await getDoc(userRef)
+      // Get current user profile
+      const userDocRef = doc(db, 'users', user.uid)
+      const userDoc = await getDoc(userDocRef)
       
-      if (!userSnap.exists()) return
-
-      const userData = userSnap.data()
-      const today = new Date().toISOString().split('T')[0]
+      if (!userDoc.exists()) {
+        console.warn('User document not found')
+        setIsLoading(false)
+        return
+      }
 
       // Get user activities
       const activities = await getUserActivities(user.uid)
       
-      // Update user progress based on current trades and activities
+      // Update user progress with current trades and activities
       await updateUserProgress(user.uid, trades, activities)
-
+      
+      // Get fresh user data after update
+      const freshUserDoc = await getDoc(userDocRef)
+      const freshUserData = freshUserDoc.data()
+      
+      // Generate motivational message
+      const today = new Date().toISOString().split('T')[0]
+      const todayXP = freshUserData?.dailyXPLog?.[today] || 0
+      
       // Calculate recent behavior for motivational message
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0]
       const recentDates = [today, yesterday]
@@ -82,38 +94,46 @@ export function useTraderProgress(): TraderProgressData {
         backtested: recentActivities.some(activity => activity.type === 'backtest'),
         reengineered: recentActivities.some(activity => activity.type === 'reengineer')
       }
-
-      const todayXP = userData.dailyXPLog?.[today] || 0
-      const message = getMotivationalMessage(
-        userData.streak || 0,
+      
+      const motivationalMessage = getMotivationalMessage(
+        freshUserData?.streak || 0,
         todayXP,
         recentBehavior
       )
+
       setProgressData({
-        level: userData.level || 1,
-        xp: userData.xp || 0,
-        xpToNextLevel: userData.xpToNextLevel || 1000,
-        streak: userData.streak || 0,
-        longestStreak: userData.longestStreak || 0,
-        todayXP,
-        motivationalMessage: message,
-        activities,
-        isLoading: false
+        xp: freshUserData?.xp || 0,
+        level: freshUserData?.level || 1,
+        xpToNextLevel: freshUserData?.xpToNextLevel || 1000,
+        streak: freshUserData?.streak || 0,
+        longestStreak: freshUserData?.longestStreak || 0,
+        motivationalMessage,
+        lastActivityDate: freshUserData?.lastActivityDate,
+        dailyXPLog: freshUserData?.dailyXPLog || {},
+        activities
       })
-      
     } catch (error) {
-      console.error('Error fetching progress:', error)
-      setProgressData(prev => ({ ...prev, isLoading: false }))
+      console.error('Error fetching trader progress:', error)
+    } finally {
+      setIsLoading(false)
     }
   }, [user, trades])
 
-  // Auto-refresh when trades change
+  // Refresh on mount and when user changes
   useEffect(() => {
     refreshProgress()
   }, [refreshProgress])
 
+  // Auto-refresh when trades change (for real-time updates)
+  useEffect(() => {
+    if (user && trades.length >= 0) { // Check trades.length >= 0 to trigger on both additions and deletions
+      refreshProgress()
+    }
+  }, [trades, user, refreshProgress])
+
   return {
     ...progressData,
+    isLoading,
     refreshProgress
   }
 } 

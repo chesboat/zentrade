@@ -77,6 +77,7 @@ export function ActivityLogger() {
       await addActivity(user.uid, selectedActivity, notes.trim())
       console.log('Activity added successfully')
       
+      // Force immediate refresh of progress data
       await refreshProgress()
       console.log('Progress refreshed')
       
@@ -84,7 +85,8 @@ export function ActivityLogger() {
       setSelectedActivity(null)
       setNotes('')
       
-      setTimeout(() => setShowSuccess(false), 3000)
+      // Show success for shorter time to improve UX
+      setTimeout(() => setShowSuccess(false), 2000)
     } catch (error) {
       console.error('Error adding activity:', error)
       // Show error to user

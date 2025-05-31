@@ -1,4 +1,4 @@
-import { doc, updateDoc, getDoc, addDoc, collection, query, where, getDocs, orderBy, serverTimestamp } from 'firebase/firestore'
+import { doc, updateDoc, getDoc, addDoc, collection, query, where, getDocs, orderBy, serverTimestamp, deleteDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { Trade } from '@/mockData/trades'
 
@@ -394,5 +394,45 @@ export const getUserActivities = async (userId: string): Promise<Activity[]> => 
     }
     
     return []
+  }
+}
+
+// Update activity in the activities collection
+export const updateActivity = async (
+  activityId: string,
+  userId: string,
+  updates: Partial<Pick<Activity, 'notes' | 'type'>>
+): Promise<void> => {
+  try {
+    await updateDoc(doc(db, 'activities', activityId), {
+      ...updates,
+      updatedAt: serverTimestamp()
+    })
+    
+    // Update user progress after updating activity
+    const userTrades = await getUserTrades(userId)
+    const userActivities = await getUserActivities(userId)
+    await updateUserProgress(userId, userTrades, userActivities)
+    
+  } catch (error) {
+    console.error('Error updating activity:', error)
+    throw error
+  }
+}
+
+// Delete activity from the activities collection
+export const deleteActivity = async (activityId: string, userId: string): Promise<void> => {
+  try {
+    // Delete the activity
+    await deleteDoc(doc(db, 'activities', activityId))
+    
+    // Update user progress after deleting activity
+    const userTrades = await getUserTrades(userId)
+    const userActivities = await getUserActivities(userId)
+    await updateUserProgress(userId, userTrades, userActivities)
+    
+  } catch (error) {
+    console.error('Error deleting activity:', error)
+    throw error
   }
 } 

@@ -14,7 +14,9 @@ import {
   Copy
 } from "lucide-react";
 import { useTrades } from "@/contexts/TradesContext";
+import { useTraderProgress } from "@/hooks/useTraderProgress";
 import { Trade } from "@/mockData/trades";
+import { Activity } from "@/services/xpService";
 import Image from "next/image";
 
 interface DayStats {
@@ -27,7 +29,7 @@ interface DayStats {
   hasJournal: boolean;
   isToday: boolean;
   trades: Trade[];
-  activities: Trade[];
+  activities: Activity[];
 }
 
 interface CalendarSummaryModalProps {
@@ -629,6 +631,7 @@ function TradeDetailModal({ trade, onClose, onTradeUpdate }: {
 
 export function WeeklyCalendarPreview() {
   const { trades } = useTrades();
+  const { activities } = useTraderProgress();
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTradeDetail, setSelectedTradeDetail] = useState<Trade | null>(null);
 
@@ -647,12 +650,17 @@ export function WeeklyCalendarPreview() {
       const dayTrades = trades.filter(trade => 
         trade.entryDate === dateString || trade.exitDate === dateString
       );
+
+      const dayActivities = activities.filter(activity => 
+        activity.date === dateString
+      );
       
       const pnl = dayTrades
         .filter(trade => trade.status === 'closed')
         .reduce((sum, trade) => sum + (trade.pnl || 0), 0);
       
-      const hasJournal = dayTrades.some(trade => trade.notes && trade.notes.trim().length > 0);
+      const hasJournal = dayTrades.some(trade => trade.notes && trade.notes.trim().length > 0) ||
+                         dayActivities.length > 0;
       
       days.push({
         date: dateString,
@@ -660,16 +668,16 @@ export function WeeklyCalendarPreview() {
         dayNumber: date.getDate(),
         pnl,
         tradeCount: dayTrades.length,
-        activityCount: 0,
+        activityCount: dayActivities.length,
         hasJournal,
         isToday: dateString === today.toISOString().split('T')[0],
         trades: dayTrades,
-        activities: [] // TODO: Add activities when implementing calendar activities
+        activities: dayActivities
       });
     }
     
     return days;
-  }, [trades]);
+  }, [trades, activities]);
 
   const formatCurrency = (amount: number) => {
     if (amount === 0) return '$0';
@@ -743,13 +751,19 @@ export function WeeklyCalendarPreview() {
 
                 {/* Stats */}
                 <div className="mt-2 space-y-1">
-                  {day.tradeCount > 0 && (
-                    <div className="text-center">
+                  <div className="flex justify-center gap-1">
+                    {day.tradeCount > 0 && (
                       <Badge variant="secondary" className="text-xs px-1 py-0">
                         {day.tradeCount}
                       </Badge>
-                    </div>
-                  )}
+                    )}
+                    {day.activityCount > 0 && (
+                      <Badge variant="outline" className="text-xs px-1 py-0 border-primary/50 text-primary">
+                        <Target className="h-3 w-3 mr-1" />
+                        {day.activityCount}
+                      </Badge>
+                    )}
+                  </div>
                   
                   {day.pnl !== 0 && (
                     <div className="text-center text-xs font-medium">
@@ -775,9 +789,14 @@ export function WeeklyCalendarPreview() {
           {/* Summary */}
           <div className="mt-4 pt-3 border-t border-border/50">
             <div className="flex justify-between items-center text-sm text-muted-foreground">
-              <span>
-                {weekData.reduce((sum, day) => sum + day.tradeCount, 0)} trades this week
-              </span>
+              <div className="flex items-center gap-4">
+                <span>
+                  {weekData.reduce((sum, day) => sum + day.tradeCount, 0)} trades
+                </span>
+                <span>
+                  {weekData.reduce((sum, day) => sum + day.activityCount, 0)} activities
+                </span>
+              </div>
               <span className={
                 weekData.reduce((sum, day) => sum + day.pnl, 0) >= 0 
                   ? 'text-green-600' 
