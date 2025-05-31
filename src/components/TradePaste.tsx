@@ -6,9 +6,6 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Separator } from "@/components/ui/separator"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Copy, TrendingUp, TrendingDown, Target, DollarSign, CheckCircle, AlertCircle, Edit3, Save, X } from "lucide-react"
 import { useTrades } from "@/contexts/TradesContext"
 import { Trade as ContextTrade } from "@/mockData/trades"
@@ -264,6 +261,7 @@ export function TradePaste() {
     // Fallback to original text parsing if clip data not found or failed
     console.log('📝 Falling back to text parsing...')
     return fallbackTextParsing(text)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Fallback parsing for plain text or when clip data fails
@@ -528,6 +526,7 @@ export function TradePaste() {
       setError('Failed to parse trading data. Please check the format.')
       setParsedTrade(null)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [parsedTrade, parseTradingViewData])
 
   // Enhanced parsing for TradingView specific formats
