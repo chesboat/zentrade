@@ -1,12 +1,35 @@
 "use client";
 
+import React, { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, ChevronRight, BookOpen, TrendingUp, TrendingDown, Target, Copy } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { 
+  Calendar, 
+  TrendingUp, 
+  TrendingDown, 
+  ArrowUp, 
+  ArrowDown, 
+  BookOpen,
+  BarChart3,
+  RefreshCw,
+  FileText,
+  Zap,
+  Edit,
+  Save,
+  X,
+  ChevronRight,
+  Target,
+  Copy
+} from "lucide-react";
 import { useTrades } from "@/contexts/TradesContext";
-import { useMemo, useState } from "react";
+import { useTraderProgress } from "@/hooks/useTraderProgress";
+import { updateDoc, doc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { useAuth } from '@/contexts/AuthContext';
 import { Trade } from "@/mockData/trades";
+import { Activity, ActivityType } from "@/services/xpService";
 import Image from "next/image";
 
 interface DayStats {
@@ -15,9 +38,11 @@ interface DayStats {
   dayNumber: number;
   pnl: number;
   tradeCount: number;
+  activityCount: number;
   hasJournal: boolean;
   isToday: boolean;
   trades: Trade[];
+  activities: Activity[];
 }
 
 interface CalendarSummaryModalProps {
@@ -617,6 +642,27 @@ function TradeDetailModal({ trade, onClose, onTradeUpdate }: {
   )
 }
 
+const ActivityTypeConfig = {
+  backtest: {
+    icon: <BarChart3 className="h-3 w-3" />,
+    label: "Backtest",
+    color: "bg-blue-500",
+    textColor: "text-blue-600"
+  },
+  reengineer: {
+    icon: <RefreshCw className="h-3 w-3" />,
+    label: "Re-engineer",
+    color: "bg-purple-500",
+    textColor: "text-purple-600"
+  },
+  postTradeReview: {
+    icon: <FileText className="h-3 w-3" />,
+    label: "Analysis",
+    color: "bg-green-500",
+    textColor: "text-green-600"
+  }
+}
+
 export function WeeklyCalendarPreview() {
   const { trades } = useTrades();
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -650,9 +696,11 @@ export function WeeklyCalendarPreview() {
         dayNumber: date.getDate(),
         pnl,
         tradeCount: dayTrades.length,
+        activityCount: 0,
         hasJournal,
         isToday: dateString === today.toISOString().split('T')[0],
-        trades: dayTrades
+        trades: dayTrades,
+        activities: [] // TODO: Add activities when implementing calendar activities
       });
     }
     

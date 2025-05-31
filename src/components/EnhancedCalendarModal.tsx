@@ -1,0 +1,314 @@
+"use client"
+
+import React, { useState } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Textarea } from "@/components/ui/textarea"
+import { 
+  Calendar, 
+  TrendingUp, 
+  TrendingDown,
+  BookOpen,
+  BarChart3,
+  RefreshCw,
+  FileText,
+  Zap,
+  Edit,
+  Save,
+  X,
+  ArrowUp,
+  ArrowDown
+} from "lucide-react"
+import { Trade } from "@/mockData/trades"
+import { Activity, ActivityType } from "@/services/xpService"
+import { updateDoc, doc } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
+import { useAuth } from '@/contexts/AuthContext'
+
+interface EnhancedCalendarModalProps {
+  date: Date | null
+  trades: Trade[]
+  activities: Activity[]
+  onClose: () => void
+  onTradeClick: (trade: Trade) => void
+  onActivityUpdate: () => void
+}
+
+const ActivityTypeConfig = {
+  backtest: {
+    icon: <BarChart3 className="h-4 w-4" />,
+    label: "Backtest Session",
+    color: "bg-blue-50 border-blue-200 text-blue-700",
+    xp: 40
+  },
+  reengineer: {
+    icon: <RefreshCw className="h-4 w-4" />,
+    label: "Re-engineered Trade",
+    color: "bg-purple-50 border-purple-200 text-purple-700",
+    xp: 25
+  },
+  postTradeReview: {
+    icon: <FileText className="h-4 w-4" />,
+    label: "Post-Trade Analysis",
+    color: "bg-green-50 border-green-200 text-green-700",
+    xp: 20
+  }
+}
+
+export function EnhancedCalendarModal({ 
+  date, 
+  trades, 
+  activities, 
+  onClose, 
+  onTradeClick,
+  onActivityUpdate 
+}: EnhancedCalendarModalProps) {
+  const { user } = useAuth()
+  const [editingActivity, setEditingActivity] = useState<string | null>(null)
+  const [editedNotes, setEditedNotes] = useState('')
+
+  if (!date) return null
+
+  const totalPnL = trades.reduce((sum, trade) => sum + (trade.pnl || 0), 0)
+  const winCount = trades.filter(trade => (trade.pnl || 0) > 0).length
+  const lossCount = trades.filter(trade => (trade.pnl || 0) < 0).length
+  const totalXP = activities.reduce((sum, activity) => {
+    const config = ActivityTypeConfig[activity.type]
+    return sum + (config?.xp || 0)
+  }, 0)
+
+  const handleEditActivity = (activity: Activity) => {
+    setEditingActivity(activity.id || '')
+    setEditedNotes(activity.notes)
+  }
+
+  const handleSaveActivity = async (activityId: string) => {
+    if (!user || !editedNotes.trim()) return
+
+    try {
+      await updateDoc(doc(db, 'activities', activityId), {
+        notes: editedNotes.trim(),
+        updatedAt: new Date()
+      })
+      setEditingActivity(null)
+      setEditedNotes('')
+      onActivityUpdate()
+    } catch (error) {
+      console.error('Error updating activity:', error)
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setEditingActivity(null)
+    setEditedNotes('')
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+      <Card className="w-full max-w-3xl max-h-[85vh] overflow-y-auto">
+        <CardHeader className="pb-4">
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              {date.toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              })}
+            </CardTitle>
+            <Button variant="ghost" size="sm" onClick={onClose}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          {/* Summary Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold">{trades.length}</div>
+              <div className="text-sm text-muted-foreground">Trades</div>
+            </div>
+            <div className="text-center">
+              <div className={`text-2xl font-bold ${
+                totalPnL > 0 ? 'text-green-600' : totalPnL < 0 ? 'text-red-600' : 'text-muted-foreground'
+              }`}>
+                {totalPnL >= 0 ? '+' : ''}${totalPnL.toFixed(0)}
+              </div>
+              <div className="text-sm text-muted-foreground">P&L</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold">{activities.length}</div>
+              <div className="text-sm text-muted-foreground">Activities</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600">+{totalXP}</div>
+              <div className="text-sm text-muted-foreground">XP Earned</div>
+            </div>
+          </div>
+        </CardHeader>
+        
+        <CardContent className="space-y-6">
+          {/* Trades Section */}
+          {trades.length > 0 && (
+            <div>
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                Trades ({trades.length})
+              </h3>
+              <div className="space-y-3">
+                {trades.map((trade) => (
+                  <div 
+                    key={trade.id} 
+                    className="border rounded-lg p-3 cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => onTradeClick(trade)}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className={`
+                          flex items-center justify-center w-8 h-8 rounded-full
+                          ${trade.type === 'long' 
+                            ? 'bg-green-100 text-green-600' 
+                            : 'bg-red-100 text-red-600'
+                          }
+                        `}>
+                          {trade.type === 'long' ? (
+                            <ArrowUp className="h-4 w-4" />
+                          ) : (
+                            <ArrowDown className="h-4 w-4" />
+                          )}
+                        </div>
+                        <Badge variant="secondary">{trade.symbol}</Badge>
+                        <span className="text-sm font-medium">
+                          ${trade.entryPrice.toFixed(2)}
+                          {trade.exitPrice && ` → $${trade.exitPrice.toFixed(2)}`}
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          {trade.quantity} contracts
+                        </span>
+                      </div>
+                      {trade.pnl !== undefined && (
+                        <div className={`font-medium ${
+                          trade.pnl > 0 ? 'text-green-600' : trade.pnl < 0 ? 'text-red-600' : 'text-muted-foreground'
+                        }`}>
+                          {trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {trade.notes && (
+                      <div className="text-sm bg-muted/30 p-2 rounded border-l-2 border-blue-500">
+                        <div className="flex items-start gap-1">
+                          <BookOpen className="h-3 w-3 mt-0.5 text-blue-600" />
+                          <span className="text-muted-foreground">
+                            {trade.notes.length > 60 
+                              ? `${trade.notes.substring(0, 60)}...` 
+                              : trade.notes
+                            }
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Activities Section */}
+          {activities.length > 0 && (
+            <div>
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <Zap className="h-5 w-5" />
+                Learning Activities ({activities.length})
+              </h3>
+              <div className="space-y-3">
+                {activities.map((activity) => {
+                  const config = ActivityTypeConfig[activity.type]
+                  const isEditing = editingActivity === activity.id
+                  
+                  return (
+                    <div 
+                      key={activity.id} 
+                      className={`border rounded-lg p-4 transition-colors ${
+                        isEditing ? 'border-primary' : 'border-border'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className={`
+                            flex items-center justify-center w-10 h-10 rounded-full border
+                            ${config.color}
+                          `}>
+                            {config.icon}
+                          </div>
+                          <div>
+                            <div className="font-medium">{config.label}</div>
+                            <Badge variant="outline" className="text-xs flex items-center gap-1 w-fit">
+                              <Zap className="h-3 w-3" />
+                              +{config.xp} XP
+                            </Badge>
+                          </div>
+                        </div>
+                        {!isEditing && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleEditActivity(activity)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                      
+                      {isEditing ? (
+                        <div className="space-y-3">
+                          <Textarea
+                            value={editedNotes}
+                            onChange={(e) => setEditedNotes(e.target.value)}
+                            placeholder="Add your insights..."
+                            className="min-h-20"
+                          />
+                          <div className="flex gap-2">
+                            <Button 
+                              size="sm" 
+                              onClick={() => handleSaveActivity(activity.id!)}
+                              disabled={!editedNotes.trim()}
+                            >
+                              <Save className="h-3 w-3 mr-1" />
+                              Save
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={handleCancelEdit}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-sm bg-muted/30 p-3 rounded">
+                          {activity.notes}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Empty State */}
+          {trades.length === 0 && activities.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No activity on this day</p>
+              <p className="text-sm">Start trading or log some analysis to see activity here</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+} 

@@ -4,16 +4,20 @@ import React, { useState, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ChevronLeft, ChevronRight, Calendar, TrendingUp, TrendingDown, BookOpen, Target, Copy } from "lucide-react"
+import { ChevronLeft, ChevronRight, Calendar, TrendingUp, TrendingDown, BookOpen, Target, Copy, BarChart3, RefreshCw, FileText, Zap } from "lucide-react"
 import { Trade } from "@/mockData/trades"
 import { useTrades } from "@/contexts/TradesContext"
+import { useTraderProgress } from "@/hooks/useTraderProgress"
+import { Activity } from "@/services/xpService"
 import Image from "next/image"
 
 interface DayData {
   date: Date
   trades: Trade[]
+  activities: Activity[]
   totalPnL: number
   hasNotes: boolean
+  totalXP: number
 }
 
 interface CalendarDayCellProps {
@@ -27,8 +31,10 @@ interface CalendarDayCellProps {
 interface CalendarSummaryModalProps {
   date: Date | null
   trades: Trade[]
+  activities: Activity[]
   onClose: () => void
   onTradeClick: (trade: Trade) => void
+  onActivityUpdate: () => void
 }
 
 function CalendarDayCell({ date, dayData, isCurrentMonth, isToday, onClick }: CalendarDayCellProps) {
@@ -40,52 +46,114 @@ function CalendarDayCell({ date, dayData, isCurrentMonth, isToday, onClick }: Ca
         ? 'text-yellow-600 bg-yellow-50 border-yellow-200'
         : ''
 
+  const activityIcons = {
+    backtest: <BarChart3 className="h-2.5 w-2.5 text-blue-500" />,
+    reengineer: <RefreshCw className="h-2.5 w-2.5 text-purple-500" />,
+    postTradeReview: <FileText className="h-2.5 w-2.5 text-green-500" />
+  }
+
   return (
     <div 
-      className={`h-24 border cursor-pointer transition-all hover:bg-muted/20 ${
+      className={`h-24 border cursor-pointer transition-all hover:bg-muted/20 hover:shadow-sm ${
         isCurrentMonth ? 'border-muted/30' : 'border-muted/10 opacity-40'
       } ${isToday ? 'bg-primary/10 border-primary/30' : ''}`}
       onClick={onClick}
     >
       <div className="p-2 h-full flex flex-col justify-between">
-        {/* Date number - always show */}
+        {/* Header row - date and journal icon */}
         <div className="flex items-start justify-between">
           <span className={`text-sm font-medium ${
             isCurrentMonth ? 'text-foreground' : 'text-muted-foreground'
           }`}>
             {date.getDate()}
           </span>
-          {dayData?.hasNotes && (
-            <BookOpen className="h-3 w-3 text-blue-500" />
-          )}
+          <div className="flex items-center gap-1">
+            {dayData?.hasNotes && (
+              <BookOpen className="h-3 w-3 text-blue-500" />
+            )}
+            {dayData && dayData.totalXP > 0 && (
+              <div className="flex items-center">
+                <Zap className="h-2.5 w-2.5 text-yellow-500" />
+                <span className="text-xs text-yellow-600 font-medium ml-0.5">
+                  {dayData.totalXP}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Trade info - only show if there are trades */}
-        {dayData && dayData.trades.length > 0 && (
-          <div className="space-y-1">
-            <div className={`text-xs font-medium px-1 py-0.5 rounded border ${pnlColor}`}>
-              {dayData.totalPnL >= 0 ? '+' : ''}${dayData.totalPnL.toFixed(0)}
+        {/* Content area */}
+        <div className="space-y-1 flex-1 flex flex-col justify-end">
+          {/* Activity indicators */}
+          {dayData && dayData.activities.length > 0 && (
+            <div className="flex items-center gap-1 mb-1">
+              {dayData.activities.slice(0, 3).map((activity, index) => (
+                <div 
+                  key={index}
+                  className="p-0.5 rounded-full bg-muted/50 border"
+                  title={`${activity.type} activity`}
+                >
+                  {activityIcons[activity.type]}
+                </div>
+              ))}
+              {dayData.activities.length > 3 && (
+                <span className="text-xs text-muted-foreground">+{dayData.activities.length - 3}</span>
+              )}
             </div>
-            <div className="text-xs text-muted-foreground">
-              {dayData.trades.length} trade{dayData.trades.length !== 1 ? 's' : ''}
+          )}
+
+          {/* Trade info */}
+          {dayData && dayData.trades.length > 0 && (
+            <div className="space-y-1">
+              <div className={`text-xs font-medium px-1 py-0.5 rounded border ${pnlColor}`}>
+                {dayData.totalPnL >= 0 ? '+' : ''}${dayData.totalPnL.toFixed(0)}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {dayData.trades.length} trade{dayData.trades.length !== 1 ? 's' : ''}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   )
 }
 
-function CalendarSummaryModal({ date, trades, onClose, onTradeClick }: CalendarSummaryModalProps) {
+function CalendarSummaryModal({ date, trades, activities, onClose, onTradeClick, onActivityUpdate }: CalendarSummaryModalProps) {
   if (!date) return null
 
   const totalPnL = trades.reduce((sum, trade) => sum + (trade.pnl || 0), 0)
   const winCount = trades.filter(trade => (trade.pnl || 0) > 0).length
   const lossCount = trades.filter(trade => (trade.pnl || 0) < 0).length
+  const totalXP = activities.reduce((sum, activity) => {
+    const activityXP = { backtest: 40, reengineer: 25, postTradeReview: 20 }
+    return sum + (activityXP[activity.type] || 0)
+  }, 0)
+
+  const activityConfig = {
+    backtest: {
+      icon: <BarChart3 className="h-4 w-4" />,
+      label: "Backtest Session",
+      color: "bg-blue-50 border-blue-200 text-blue-700",
+      xp: 40
+    },
+    reengineer: {
+      icon: <RefreshCw className="h-4 w-4" />,
+      label: "Re-engineered Trade", 
+      color: "bg-purple-50 border-purple-200 text-purple-700",
+      xp: 25
+    },
+    postTradeReview: {
+      icon: <FileText className="h-4 w-4" />,
+      label: "Post-Trade Analysis",
+      color: "bg-green-50 border-green-200 text-green-700", 
+      xp: 20
+    }
+  }
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-2xl max-h-[80vh] overflow-y-auto">
+      <Card className="w-full max-w-3xl max-h-[85vh] overflow-y-auto">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
@@ -102,101 +170,170 @@ function CalendarSummaryModal({ date, trades, onClose, onTradeClick }: CalendarS
             </Button>
           </div>
           
-          {trades.length > 0 && (
-            <div className="flex items-center gap-4 text-sm">
-              <div className={`font-medium ${
-                totalPnL > 0 ? 'text-green-600' : totalPnL < 0 ? 'text-red-600' : 'text-yellow-600'
+          {/* Summary Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold">{trades.length}</div>
+              <div className="text-sm text-muted-foreground">Trades</div>
+            </div>
+            <div className="text-center">
+              <div className={`text-2xl font-bold ${
+                totalPnL > 0 ? 'text-green-600' : totalPnL < 0 ? 'text-red-600' : 'text-muted-foreground'
               }`}>
-                Total P&L: {totalPnL >= 0 ? '+' : ''}${totalPnL.toFixed(2)}
+                {totalPnL >= 0 ? '+' : ''}${totalPnL.toFixed(0)}
               </div>
-              <div className="text-muted-foreground">
-                {trades.length} trades • {winCount}W {lossCount}L
+              <div className="text-sm text-muted-foreground">P&L</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold">{activities.length}</div>
+              <div className="text-sm text-muted-foreground">Activities</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600 flex items-center justify-center gap-1">
+                <Zap className="h-5 w-5" />
+                +{totalXP}
+              </div>
+              <div className="text-sm text-muted-foreground">XP Earned</div>
+            </div>
+          </div>
+        </CardHeader>
+        
+        <CardContent className="space-y-6">
+          {/* Activities Section */}
+          {activities.length > 0 && (
+            <div>
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <Zap className="h-5 w-5" />
+                Learning Activities ({activities.length})
+              </h3>
+              <div className="space-y-3">
+                {activities.map((activity, index) => {
+                  const config = activityConfig[activity.type]
+                  
+                  return (
+                    <div 
+                      key={index} 
+                      className="border rounded-lg p-4"
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className={`
+                            flex items-center justify-center w-10 h-10 rounded-full border
+                            ${config.color}
+                          `}>
+                            {config.icon}
+                          </div>
+                          <div>
+                            <div className="font-medium">{config.label}</div>
+                            <Badge variant="outline" className="text-xs flex items-center gap-1 w-fit">
+                              <Zap className="h-3 w-3" />
+                              +{config.xp} XP
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="text-sm bg-muted/30 p-3 rounded">
+                        {activity.notes}
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )}
-        </CardHeader>
-        
-        <CardContent>
-          {trades.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No trades on this day
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {trades.map((trade) => (
-                <div 
-                  key={trade.id} 
-                  className="border rounded-lg p-3 cursor-pointer hover:bg-muted/50 transition-colors"
-                  onClick={() => onTradeClick(trade)}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary">{trade.symbol}</Badge>
-                      <Badge variant={trade.type === 'long' ? 'default' : 'destructive'}>
-                        {trade.type === 'long' ? (
-                          <TrendingUp className="h-3 w-3 mr-1" />
-                        ) : (
-                          <TrendingDown className="h-3 w-3 mr-1" />
-                        )}
-                        {trade.type.toUpperCase()}
-                      </Badge>
-                      <span className="text-sm font-medium">
-                        ${trade.entryPrice.toFixed(2)}
-                        {trade.exitPrice && ` → $${trade.exitPrice.toFixed(2)}`}
-                      </span>
-                    </div>
-                    {trade.pnl && (
-                      <div className={`font-medium ${
-                        trade.pnl > 0 ? 'text-green-600' : trade.pnl < 0 ? 'text-red-600' : 'text-yellow-600'
-                      }`}>
-                        {trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="text-sm text-muted-foreground mb-2">
-                    {trade.quantity} contracts • {trade.strategy}
-                    {trade.screenshot && <span className="ml-2">📸</span>}
-                  </div>
-                  
-                  {trade.notes && (
-                    <div className="text-sm bg-muted/30 p-2 rounded border-l-2 border-blue-500 relative">
-                      <div className="flex items-start gap-1">
-                        <span>📒</span>
-                        <div className="flex-1 min-w-0">
-                          {trade.notes.length > 100 ? (
-                            <div className="relative">
-                              <div 
-                                className="overflow-hidden relative"
-                                style={{
-                                  maxHeight: '2.5rem',
-                                  WebkitMask: 'linear-gradient(180deg, black 0%, black 60%, transparent 100%)',
-                                  mask: 'linear-gradient(180deg, black 0%, black 60%, transparent 100%)'
-                                }}
-                              >
-                                {trade.notes}
-                                {/* Fallback gradient overlay for browsers without mask support */}
-                                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-muted/30 pointer-events-none" 
-                                     style={{ top: '60%' }} />
-                              </div>
-                              <div className="absolute bottom-0 right-0 text-muted-foreground text-xs pointer-events-none">
-                                ⋯
-                              </div>
-                            </div>
+
+          {/* Trades Section */}
+          {trades.length > 0 && (
+            <div>
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                Trades ({trades.length})
+              </h3>
+              <div className="space-y-3">
+                {trades.map((trade) => (
+                  <div 
+                    key={trade.id} 
+                    className="border rounded-lg p-3 cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => onTradeClick(trade)}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary">{trade.symbol}</Badge>
+                        <Badge variant={trade.type === 'long' ? 'default' : 'destructive'}>
+                          {trade.type === 'long' ? (
+                            <TrendingUp className="h-3 w-3 mr-1" />
                           ) : (
-                            <span>{trade.notes}</span>
+                            <TrendingDown className="h-3 w-3 mr-1" />
                           )}
-                        </div>
+                          {trade.type.toUpperCase()}
+                        </Badge>
+                        <span className="text-sm font-medium">
+                          ${trade.entryPrice.toFixed(2)}
+                          {trade.exitPrice && ` → $${trade.exitPrice.toFixed(2)}`}
+                        </span>
                       </div>
-                      {trade.notes.length > 100 && (
-                        <div className="text-xs text-muted-foreground mt-1 italic">
-                          Click trade for full journal entry
+                      {trade.pnl && (
+                        <div className={`font-medium ${
+                          trade.pnl > 0 ? 'text-green-600' : trade.pnl < 0 ? 'text-red-600' : 'text-yellow-600'
+                        }`}>
+                          {trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}
                         </div>
                       )}
                     </div>
-                  )}
-                </div>
-              ))}
+                    
+                    <div className="text-sm text-muted-foreground mb-2">
+                      {trade.quantity} contracts • {trade.strategy}
+                      {trade.screenshot && <span className="ml-2">📸</span>}
+                    </div>
+                    
+                    {trade.notes && (
+                      <div className="text-sm bg-muted/30 p-2 rounded border-l-2 border-blue-500 relative">
+                        <div className="flex items-start gap-1">
+                          <span>📒</span>
+                          <div className="flex-1 min-w-0">
+                            {trade.notes.length > 100 ? (
+                              <div className="relative">
+                                <div 
+                                  className="overflow-hidden relative"
+                                  style={{
+                                    maxHeight: '2.5rem',
+                                    WebkitMask: 'linear-gradient(180deg, black 0%, black 60%, transparent 100%)',
+                                    mask: 'linear-gradient(180deg, black 0%, black 60%, transparent 100%)'
+                                  }}
+                                >
+                                  {trade.notes}
+                                  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-muted/30 pointer-events-none" 
+                                       style={{ top: '60%' }} />
+                                </div>
+                                <div className="absolute bottom-0 right-0 text-muted-foreground text-xs pointer-events-none">
+                                  ⋯
+                                </div>
+                              </div>
+                            ) : (
+                              <span>{trade.notes}</span>
+                            )}
+                          </div>
+                        </div>
+                        {trade.notes.length > 100 && (
+                          <div className="text-xs text-muted-foreground mt-1 italic">
+                            Click trade for full journal entry
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Empty State */}
+          {trades.length === 0 && activities.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No activity on this day</p>
+              <p className="text-sm">Start trading or log some analysis to see activity here</p>
             </div>
           )}
         </CardContent>
@@ -757,11 +894,13 @@ export function CalendarView() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [selectedTradeDetail, setSelectedTradeDetail] = useState<Trade | null>(null)
   const { trades } = useTrades()
+  const { activities } = useTraderProgress()
 
-  // Process trades into day data
+  // Process trades and activities into day data
   const dayDataMap = useMemo(() => {
     const map = new Map<string, DayData>()
     
+    // Process trades
     trades.forEach((trade: Trade) => {
       if (trade.exitDate && trade.pnl !== undefined) {
         const dateKey = trade.exitDate
@@ -770,8 +909,10 @@ export function CalendarView() {
           map.set(dateKey, {
             date: new Date(dateKey),
             trades: [],
+            activities: [],
             totalPnL: 0,
-            hasNotes: false
+            hasNotes: false,
+            totalXP: 0
           })
         }
         
@@ -783,9 +924,36 @@ export function CalendarView() {
         }
       }
     })
+
+    // Process activities
+    activities.forEach((activity: Activity) => {
+      const dateKey = activity.date
+      
+      if (!map.has(dateKey)) {
+        map.set(dateKey, {
+          date: new Date(dateKey),
+          trades: [],
+          activities: [],
+          totalPnL: 0,
+          hasNotes: false,
+          totalXP: 0
+        })
+      }
+      
+      const dayData = map.get(dateKey)!
+      dayData.activities.push(activity)
+      
+      // Add XP based on activity type
+      const activityXP = {
+        backtest: 40,
+        reengineer: 25,
+        postTradeReview: 20
+      }
+      dayData.totalXP += activityXP[activity.type] || 0
+    })
     
     return map
-  }, [trades])
+  }, [trades, activities])
 
   // Calculate monthly total
   const monthlyTotal = useMemo(() => {
@@ -810,6 +978,10 @@ export function CalendarView() {
 
   const selectedDateTrades = selectedDate 
     ? dayDataMap.get(selectedDate.toISOString().split('T')[0])?.trades || []
+    : []
+
+  const selectedDateActivities = selectedDate 
+    ? dayDataMap.get(selectedDate.toISOString().split('T')[0])?.activities || []
     : []
 
   return (
@@ -861,11 +1033,13 @@ export function CalendarView() {
         <CalendarSummaryModal
           date={selectedDate}
           trades={selectedDateTrades}
+          activities={selectedDateActivities}
           onClose={() => setSelectedDate(null)}
           onTradeClick={(trade) => {
             setSelectedTradeDetail(trade)
             setSelectedDate(null) // Close calendar modal when trade detail opens
           }}
+          onActivityUpdate={() => {}}
         />
       )}
 

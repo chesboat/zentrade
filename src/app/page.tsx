@@ -8,7 +8,7 @@ import { TradePaste } from "@/components/TradePaste";
 import { CalendarView } from "@/components/CalendarView";
 import { TodaySummaryCard } from "@/components/TodaySummaryCard";
 import { WeeklyCalendarPreview } from "@/components/WeeklyCalendarPreview";
-import { RecentTrades } from "@/components/RecentTrades";
+import { RecentActivity } from "@/components/RecentActivity";
 import { SmartNudges } from "@/components/SmartNudges";
 import { ActivityLogger } from "@/components/gamification/ActivityLogger";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
@@ -420,7 +420,7 @@ function Dashboard() {
       {/* Recent Trades */}
       <div className="space-y-4">
         <h2 className="text-xl font-semibold tracking-tight">Recent Activity</h2>
-        <RecentTrades />
+        <RecentActivity />
       </div>
 
       {/* Trade Entry */}

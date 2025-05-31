@@ -7,6 +7,8 @@ import {
   getMotivationalMessage,
   Activity 
 } from '@/services/xpService'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 
 export interface TraderProgressData {
   xp: number
@@ -21,28 +23,42 @@ export interface TraderProgressData {
   refreshProgress: () => Promise<void>
 }
 
-export const useTraderProgress = (): TraderProgressData => {
-  const { user, userProfile } = useAuth()
+export function useTraderProgress(): TraderProgressData {
+  const { user } = useAuth()
   const { trades } = useTrades()
-  const [activities, setActivities] = useState<Activity[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [motivationalMessage, setMotivationalMessage] = useState('')
+  const [progressData, setProgressData] = useState({
+    level: 1,
+    xp: 0,
+    xpToNextLevel: 1000,
+    streak: 0,
+    longestStreak: 0,
+    todayXP: 0,
+    motivationalMessage: "Welcome to your trading journey!",
+    activities: [] as any[],
+    isLoading: true
+  })
 
-  // Refresh progress data
   const refreshProgress = useCallback(async () => {
-    if (!user || !userProfile) return
+    if (!user) return
 
-    setIsLoading(true)
     try {
-      // Get user activities
-      const userActivities = await getUserActivities(user.uid)
-      setActivities(userActivities)
+      setProgressData(prev => ({ ...prev, isLoading: true }))
+      
+      const userRef = doc(db, 'users', user.uid)
+      const userSnap = await getDoc(userRef)
+      
+      if (!userSnap.exists()) return
 
+      const userData = userSnap.data()
+      const today = new Date().toISOString().split('T')[0]
+
+      // Get user activities
+      const activities = await getUserActivities(user.uid)
+      
       // Update user progress based on current trades and activities
-      await updateUserProgress(user.uid, trades, userActivities)
+      await updateUserProgress(user.uid, trades, activities)
 
       // Calculate recent behavior for motivational message
-      const today = new Date().toISOString().split('T')[0]
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0]
       const recentDates = [today, yesterday]
 
@@ -51,7 +67,7 @@ export const useTraderProgress = (): TraderProgressData => {
         (trade.exitDate && recentDates.includes(trade.exitDate))
       )
 
-      const recentActivities = userActivities.filter(activity => 
+      const recentActivities = activities.filter(activity => 
         recentDates.includes(activity.date)
       )
 
@@ -67,39 +83,37 @@ export const useTraderProgress = (): TraderProgressData => {
         reengineered: recentActivities.some(activity => activity.type === 'reengineer')
       }
 
-      const todayXP = userProfile.dailyXPLog?.[today] || 0
+      const todayXP = userData.dailyXPLog?.[today] || 0
       const message = getMotivationalMessage(
-        userProfile.streak,
+        userData.streak || 0,
         todayXP,
         recentBehavior
       )
-      setMotivationalMessage(message)
-
+      setProgressData({
+        level: userData.level || 1,
+        xp: userData.xp || 0,
+        xpToNextLevel: userData.xpToNextLevel || 1000,
+        streak: userData.streak || 0,
+        longestStreak: userData.longestStreak || 0,
+        todayXP,
+        motivationalMessage: message,
+        activities,
+        isLoading: false
+      })
+      
     } catch (error) {
-      console.error('Error refreshing progress:', error)
-    } finally {
-      setIsLoading(false)
+      console.error('Error fetching progress:', error)
+      setProgressData(prev => ({ ...prev, isLoading: false }))
     }
-  }, [user, userProfile, trades])
+  }, [user, trades])
 
   // Auto-refresh when trades change
   useEffect(() => {
     refreshProgress()
   }, [refreshProgress])
 
-  // Calculate today's XP
-  const todayXP = userProfile?.dailyXPLog?.[new Date().toISOString().split('T')[0]] || 0
-
   return {
-    xp: userProfile?.xp || 0,
-    level: userProfile?.level || 1,
-    xpToNextLevel: userProfile?.xpToNextLevel || 100,
-    streak: userProfile?.streak || 0,
-    longestStreak: userProfile?.longestStreak || 0,
-    motivationalMessage,
-    todayXP,
-    isLoading,
-    activities,
+    ...progressData,
     refreshProgress
   }
 } 
