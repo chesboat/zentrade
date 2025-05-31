@@ -57,12 +57,28 @@ export function ActivityLogger() {
   const [showSuccess, setShowSuccess] = useState(false)
 
   const handleSubmit = async () => {
-    if (!selectedActivity || !notes.trim() || !user) return
+    if (!selectedActivity || !notes.trim() || !user) {
+      console.warn('Activity submission blocked:', {
+        selectedActivity,
+        hasNotes: !!notes.trim(),
+        hasUser: !!user
+      })
+      return
+    }
+
+    console.log('Submitting activity:', {
+      userId: user.uid,
+      activityType: selectedActivity,
+      notesLength: notes.trim().length
+    })
 
     setIsLoading(true)
     try {
       await addActivity(user.uid, selectedActivity, notes.trim())
+      console.log('Activity added successfully')
+      
       await refreshProgress()
+      console.log('Progress refreshed')
       
       setShowSuccess(true)
       setSelectedActivity(null)
@@ -71,6 +87,8 @@ export function ActivityLogger() {
       setTimeout(() => setShowSuccess(false), 3000)
     } catch (error) {
       console.error('Error adding activity:', error)
+      // Show error to user
+      alert('Failed to log activity. Please check console for details.')
     } finally {
       setIsLoading(false)
     }

@@ -324,6 +324,30 @@ export const getUserTrades = async (userId: string): Promise<Trade[]> => {
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Trade))
   } catch (error) {
     console.error('Error fetching user trades:', error)
+    
+    // If the composite index is not ready, try a simpler query
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'failed-precondition') {
+      console.warn('Composite index not ready for trades, falling back to simple query')
+      try {
+        const simpleQuery = query(
+          collection(db, 'trades'),
+          where('userId', '==', userId)
+        )
+        const snapshot = await getDocs(simpleQuery)
+        const trades = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Trade))
+        
+        // Manual sort by entryDate in memory
+        return trades.sort((a, b) => {
+          const aDate = new Date(a.entryDate).getTime()
+          const bDate = new Date(b.entryDate).getTime()
+          return bDate - aDate // Most recent first
+        })
+      } catch (fallbackError) {
+        console.error('Fallback query for trades also failed:', fallbackError)
+        return []
+      }
+    }
+    
     return []
   }
 }
@@ -341,6 +365,34 @@ export const getUserActivities = async (userId: string): Promise<Activity[]> => 
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Activity))
   } catch (error) {
     console.error('Error fetching user activities:', error)
+    
+    // If the composite index is not ready, try a simpler query
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'failed-precondition') {
+      console.warn('Composite index not ready, falling back to simple query')
+      try {
+        const simpleQuery = query(
+          collection(db, 'activities'),
+          where('userId', '==', userId)
+        )
+        const snapshot = await getDocs(simpleQuery)
+        const activities = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Activity))
+        
+        // Manual sort by createdAt in memory
+        return activities.sort((a, b) => {
+          const aTime = a.createdAt && typeof a.createdAt === 'object' && 'seconds' in a.createdAt 
+            ? (a.createdAt as any).seconds 
+            : 0
+          const bTime = b.createdAt && typeof b.createdAt === 'object' && 'seconds' in b.createdAt 
+            ? (b.createdAt as any).seconds 
+            : 0
+          return bTime - aTime
+        })
+      } catch (fallbackError) {
+        console.error('Fallback query also failed:', fallbackError)
+        return []
+      }
+    }
+    
     return []
   }
 } 
