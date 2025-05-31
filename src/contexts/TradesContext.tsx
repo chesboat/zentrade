@@ -1,40 +1,123 @@
 "use client"
 
-import React, { createContext, useContext, useState, ReactNode } from 'react'
-import { mockTrades, Trade } from "@/mockData/trades"
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { Trade } from "@/mockData/trades"
+import { useAuth } from './AuthContext'
+import { 
+  collection, 
+  query, 
+  where, 
+  orderBy, 
+  onSnapshot, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  doc,
+  serverTimestamp
+} from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 
 interface TradesContextType {
   trades: Trade[]
-  addTrade: (trade: Omit<Trade, 'id'>) => void
-  updateTrade: (id: string, updates: Partial<Trade>) => void
-  deleteTrade: (id: string) => void
+  loading: boolean
+  addTrade: (trade: Omit<Trade, 'id'>) => Promise<void>
+  updateTrade: (id: string, updates: Partial<Trade>) => Promise<void>
+  deleteTrade: (id: string) => Promise<void>
 }
 
 const TradesContext = createContext<TradesContextType | undefined>(undefined)
 
 export function TradesProvider({ children }: { children: ReactNode }) {
-  const [trades, setTrades] = useState<Trade[]>(mockTrades)
+  const [trades, setTrades] = useState<Trade[]>([])
+  const [loading, setLoading] = useState(true)
+  const { user } = useAuth()
 
-  const addTrade = (newTrade: Omit<Trade, 'id'>) => {
-    const trade: Trade = {
-      ...newTrade,
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 9)
+  // Listen to user's trades from Firestore
+  useEffect(() => {
+    if (!user) {
+      setTrades([])
+      setLoading(false)
+      return
     }
-    setTrades(prev => [trade, ...prev])
+
+    setLoading(true)
+
+    const tradesQuery = query(
+      collection(db, 'trades'),
+      where('userId', '==', user.uid),
+      orderBy('entryDate', 'desc')
+    )
+
+    const unsubscribe = onSnapshot(
+      tradesQuery,
+      (snapshot) => {
+        const tradesData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Trade[]
+        
+        setTrades(tradesData)
+        setLoading(false)
+      },
+      (error) => {
+        console.error('Error fetching trades:', error)
+        setLoading(false)
+      }
+    )
+
+    return unsubscribe
+  }, [user])
+
+  const addTrade = async (newTrade: Omit<Trade, 'id'>) => {
+    if (!user) {
+      throw new Error('User must be authenticated to add trades')
+    }
+
+    try {
+      await addDoc(collection(db, 'trades'), {
+        ...newTrade,
+        userId: user.uid,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      })
+    } catch (error) {
+      console.error('Error adding trade:', error)
+      throw error
+    }
   }
 
-  const updateTrade = (id: string, updates: Partial<Trade>) => {
-    setTrades(prev => prev.map(trade => 
-      trade.id === id ? { ...trade, ...updates } : trade
-    ))
+  const updateTrade = async (id: string, updates: Partial<Trade>) => {
+    if (!user) {
+      throw new Error('User must be authenticated to update trades')
+    }
+
+    try {
+      const tradeRef = doc(db, 'trades', id)
+      await updateDoc(tradeRef, {
+        ...updates,
+        updatedAt: serverTimestamp()
+      })
+    } catch (error) {
+      console.error('Error updating trade:', error)
+      throw error
+    }
   }
 
-  const deleteTrade = (id: string) => {
-    setTrades(prev => prev.filter(trade => trade.id !== id))
+  const deleteTrade = async (id: string) => {
+    if (!user) {
+      throw new Error('User must be authenticated to delete trades')
+    }
+
+    try {
+      await deleteDoc(doc(db, 'trades', id))
+    } catch (error) {
+      console.error('Error deleting trade:', error)
+      throw error
+    }
   }
 
   return (
-    <TradesContext.Provider value={{ trades, addTrade, updateTrade, deleteTrade }}>
+    <TradesContext.Provider value={{ trades, loading, addTrade, updateTrade, deleteTrade }}>
       {children}
     </TradesContext.Provider>
   )

@@ -10,6 +10,7 @@ import { TodaySummaryCard } from "@/components/TodaySummaryCard";
 import { WeeklyCalendarPreview } from "@/components/WeeklyCalendarPreview";
 import { RecentTrades } from "@/components/RecentTrades";
 import { SmartNudges } from "@/components/SmartNudges";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { useTrades } from "@/contexts/TradesContext";
 import { calculateTradingStats } from "@/utils/tradingStats";
 import { useMemo, useState, useEffect, useRef } from "react";
@@ -80,6 +81,14 @@ const dateFilters: DateFilter[] = [
 ];
 
 export default function Home() {
+  return (
+    <ProtectedRoute>
+      <Dashboard />
+    </ProtectedRoute>
+  );
+}
+
+function Dashboard() {
   const { trades } = useTrades();
   const [selectedDateFilter, setSelectedDateFilter] = useState<DateFilterOption>('all');
   const [showDateDropdown, setShowDateDropdown] = useState(false);
