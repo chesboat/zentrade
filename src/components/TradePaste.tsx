@@ -28,6 +28,7 @@ interface ParsedTrade {
   screenshot?: string
   journalEntry?: string
   riskRewardRatio?: number // R/R ratio from TradingView stop/target levels
+  rMultiple?: number // R-Multiple calculation (P&L / Risk Amount)
 }
 
 export function TradePaste() {
@@ -257,6 +258,12 @@ export function TradePaste() {
             }
             console.log('📊 Outcome:', result.outcome)
             console.log('💰 P&L:', result.actualPnL)
+            
+            // Calculate R-Multiple if we have both P&L and risk amount
+            if (result.actualPnL !== undefined && result.actualRisk && result.actualRisk > 0) {
+              result.rMultiple = result.actualPnL / result.actualRisk
+              console.log('📈 R-Multiple:', result.rMultiple)
+            }
           }
         }
         
@@ -1018,8 +1025,8 @@ export function TradePaste() {
             </div>
 
             {/* Outcome and P&L Row */}
-            {(parsedTrade.outcome || parsedTrade.actualPnL !== undefined || parsedTrade.exitPrice) && (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {(parsedTrade.outcome || parsedTrade.actualPnL !== undefined || parsedTrade.exitPrice || parsedTrade.rMultiple !== undefined) && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {/* Trade Outcome */}
                 {parsedTrade.outcome && (
                   <div className="space-y-2">
@@ -1053,6 +1060,19 @@ export function TradePaste() {
                     }`}>
                       <DollarSign className="h-3 w-3" />
                       {parsedTrade.actualPnL >= 0 ? '+' : ''}{parsedTrade.actualPnL.toFixed(2)}
+                    </div>
+                  </div>
+                )}
+
+                {/* R-Multiple */}
+                {parsedTrade.rMultiple !== undefined && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">R-Multiple</label>
+                    <div className={`flex items-center gap-1 text-base font-medium ${
+                      parsedTrade.rMultiple >= 0 ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      <Target className="h-3 w-3" />
+                      {parsedTrade.rMultiple >= 0 ? '+' : ''}{parsedTrade.rMultiple.toFixed(2)}R
                     </div>
                   </div>
                 )}
