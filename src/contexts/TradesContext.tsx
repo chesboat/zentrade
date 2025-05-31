@@ -13,7 +13,8 @@ import {
   updateDoc, 
   deleteDoc, 
   doc,
-  serverTimestamp
+  serverTimestamp,
+  Timestamp
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 
@@ -45,16 +46,24 @@ export function TradesProvider({ children }: { children: ReactNode }) {
     const tradesQuery = query(
       collection(db, 'trades'),
       where('userId', '==', user.uid),
-      orderBy('entryDate', 'desc')
+      orderBy('createdAt', 'desc')
     )
 
     const unsubscribe = onSnapshot(
       tradesQuery,
       (snapshot) => {
-        const tradesData = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as Trade[]
+        const tradesData = snapshot.docs.map(doc => {
+          const data = doc.data()
+          return {
+            id: doc.id,
+            ...data,
+            // Convert Firestore Timestamps back to strings if needed
+            entryDate: data.entryDate || '',
+            exitDate: data.exitDate || undefined,
+            createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : data.createdAt,
+            updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate().toISOString() : data.updatedAt
+          } as unknown as Trade
+        })
         
         setTrades(tradesData)
         setLoading(false)
@@ -74,11 +83,21 @@ export function TradesProvider({ children }: { children: ReactNode }) {
     }
 
     try {
+      // Clean the trade data to remove undefined values
+      const cleanedTrade = Object.fromEntries(
+        Object.entries(newTrade).filter(([_, value]) => value !== undefined)
+      )
+
       await addDoc(collection(db, 'trades'), {
-        ...newTrade,
+        ...cleanedTrade,
         userId: user.uid,
         createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+        updatedAt: serverTimestamp(),
+        // Ensure required fields have defaults
+        notes: cleanedTrade.notes || '',
+        strategy: cleanedTrade.strategy || '',
+        status: cleanedTrade.status || 'open',
+        type: cleanedTrade.type || 'long'
       })
     } catch (error) {
       console.error('Error adding trade:', error)
@@ -92,9 +111,14 @@ export function TradesProvider({ children }: { children: ReactNode }) {
     }
 
     try {
+      // Clean the updates to remove undefined values
+      const cleanedUpdates = Object.fromEntries(
+        Object.entries(updates).filter(([_, value]) => value !== undefined)
+      )
+
       const tradeRef = doc(db, 'trades', id)
       await updateDoc(tradeRef, {
-        ...updates,
+        ...cleanedUpdates,
         updatedAt: serverTimestamp()
       })
     } catch (error) {
