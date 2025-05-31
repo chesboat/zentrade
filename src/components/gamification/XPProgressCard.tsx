@@ -41,10 +41,13 @@ export function XPProgressCard() {
     // Debug: Log the calculation details
     const xpBreakdown = last7Days.map(date => ({
       date,
-      xp: dailyXPLog[date] || 0
+      xp: dailyXPLog[date] || 0,
+      dayName: new Date(date).toLocaleDateString('en-US', { weekday: 'long' })
     }));
     
     console.log('🔍 XP Debug:', {
+      currentDate: today.toISOString().split('T')[0],
+      currentDayName: today.toLocaleDateString('en-US', { weekday: 'long' }),
       totalXP: xp,
       level,
       xpToNextLevel,
@@ -54,7 +57,9 @@ export function XPProgressCard() {
       last7Days,
       dailyXPLog,
       xpBreakdown,
-      totalRecentXP: xpBreakdown.reduce((sum, item) => sum + item.xp, 0)
+      totalRecentXP: xpBreakdown.reduce((sum, item) => sum + item.xp, 0),
+      dailyXPLogKeys: Object.keys(dailyXPLog),
+      dailyXPLogValues: Object.values(dailyXPLog)
     });
     
     return xpBreakdown.reduce((sum, item) => sum + item.xp, 0);
