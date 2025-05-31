@@ -2,8 +2,7 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { AlertCircle, TrendingUp, BookOpen, Plus, Target, Lightbulb } from "lucide-react";
+import { TrendingUp, BookOpen, Plus, Target, Lightbulb } from "lucide-react";
 import { useTrades } from "@/contexts/TradesContext";
 import { useMemo } from "react";
 

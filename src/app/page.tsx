@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, BarChart3, Target, Shield, TrendingUp, TrendingDown, Calendar, Trophy, TrendingUpDown, Zap } from "lucide-react";
+import { DollarSign, Shield, Trophy } from "lucide-react";
 import { TradePaste } from "@/components/TradePaste";
 import { CalendarView } from "@/components/CalendarView";
 import { TodaySummaryCard } from "@/components/TodaySummaryCard";
