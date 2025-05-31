@@ -6,7 +6,10 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Separator } from "@/components/ui/separator"
-import { Copy, TrendingUp, TrendingDown, Target, DollarSign, CheckCircle, AlertCircle } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Copy, TrendingUp, TrendingDown, Target, DollarSign, CheckCircle, AlertCircle, Edit3, Save, X } from "lucide-react"
 import { useTrades } from "@/contexts/TradesContext"
 import { Trade as ContextTrade } from "@/mockData/trades"
 import Image from "next/image"
@@ -39,6 +42,11 @@ export function TradePaste() {
   const [isEditingJournal, setIsEditingJournal] = useState(false)
   const [isScreenshotMode, setIsScreenshotMode] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  
+  // New state for modal editing
+  const [isEditingTrade, setIsEditingTrade] = useState(false)
+  const [isAddingScreenshot, setIsAddingScreenshot] = useState(false)
+  const [editedTrade, setEditedTrade] = useState<ContextTrade | null>(null)
   
   const { trades, addTrade, updateTrade } = useTrades()
 
@@ -935,15 +943,13 @@ export function TradePaste() {
                 {parsedTrade.actualPnL !== undefined && (
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-muted-foreground">P&L</label>
-                    <div className="flex items-center gap-2">
-                      <div className={`flex items-center gap-1 text-base font-medium ${
-                        parsedTrade.actualPnL > 0 ? 'text-green-600' : 
-                        parsedTrade.actualPnL < 0 ? 'text-red-600' : 
-                        'text-gray-600'
-                      }`}>
-                        <DollarSign className="h-3 w-3" />
-                        {parsedTrade.actualPnL >= 0 ? '+' : ''}{parsedTrade.actualPnL.toFixed(2)}
-                      </div>
+                    <div className={`flex items-center gap-1 text-base font-medium ${
+                      parsedTrade.actualPnL > 0 ? 'text-green-600' : 
+                      parsedTrade.actualPnL < 0 ? 'text-red-600' : 
+                      'text-gray-600'
+                    }`}>
+                      <DollarSign className="h-3 w-3" />
+                      {parsedTrade.actualPnL >= 0 ? '+' : ''}{parsedTrade.actualPnL.toFixed(2)}
                     </div>
                   </div>
                 )}
@@ -1134,59 +1140,326 @@ export function TradePaste() {
             <div className="p-6 border-b flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Badge variant="secondary" className="text-lg px-3 py-1">
-                  {selectedTrade.symbol}
+                  {isEditingTrade ? editedTrade?.symbol : selectedTrade.symbol}
                 </Badge>
-                <Badge variant={selectedTrade.type === 'long' ? 'default' : 'destructive'} className="text-base px-3 py-1">
-                  {selectedTrade.type === 'long' ? (
+                <Badge variant={(isEditingTrade ? editedTrade?.type : selectedTrade.type) === 'long' ? 'default' : 'destructive'} className="text-base px-3 py-1">
+                  {(isEditingTrade ? editedTrade?.type : selectedTrade.type) === 'long' ? (
                     <TrendingUp className="h-4 w-4 mr-1" />
                   ) : (
                     <TrendingDown className="h-4 w-4 mr-1" />
                   )}
-                  {selectedTrade.type === 'long' ? 'Long' : 'Short'}
+                  {(isEditingTrade ? editedTrade?.type : selectedTrade.type) === 'long' ? 'Long' : 'Short'}
                 </Badge>
-                <span className="text-xl font-semibold">{formatPrice(selectedTrade.entryPrice)}</span>
+                <span className="text-xl font-semibold">
+                  {formatPrice(isEditingTrade ? editedTrade?.entryPrice || 0 : selectedTrade.entryPrice)}
+                </span>
               </div>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => setSelectedTrade(null)}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                ✕
-              </Button>
+              <div className="flex items-center gap-2">
+                {!isEditingTrade && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      setEditedTrade({ ...selectedTrade })
+                      setIsEditingTrade(true)
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    <Edit3 className="h-4 w-4" />
+                    Edit Trade
+                  </Button>
+                )}
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => {
+                    setSelectedTrade(null)
+                    setIsEditingTrade(false)
+                    setIsAddingScreenshot(false)
+                    setEditedTrade(null)
+                  }}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  ✕
+                </Button>
+              </div>
             </div>
             
             <div className="p-6 space-y-6">
-              {/* Trade Details */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Entry Price</label>
-                  <div className="text-lg font-semibold">{formatPrice(selectedTrade.entryPrice)}</div>
-                </div>
-                {selectedTrade.exitPrice && (
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Exit Price</label>
-                    <div className="text-lg font-semibold">{formatPrice(selectedTrade.exitPrice)}</div>
+              {/* Trade Details - Edit Mode */}
+              {isEditingTrade && editedTrade ? (
+                <div className="space-y-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <h3 className="text-lg font-semibold">Edit Trade Details</h3>
+                    <Badge variant="outline" className="text-xs">Edit Mode</Badge>
                   </div>
-                )}
-                {selectedTrade.pnl && (
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">P&L</label>
-                    <div className={`text-lg font-semibold ${selectedTrade.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      ${selectedTrade.pnl.toFixed(2)}
+                  
+                  {/* Basic Trade Info */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-muted-foreground">Symbol</label>
+                      <input
+                        type="text"
+                        value={editedTrade.symbol}
+                        onChange={(e) => setEditedTrade({ ...editedTrade, symbol: e.target.value.toUpperCase() })}
+                        className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        placeholder="e.g., AAPL"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-muted-foreground">Direction</label>
+                      <select
+                        value={editedTrade.type}
+                        onChange={(e) => setEditedTrade({ ...editedTrade, type: e.target.value as 'long' | 'short' })}
+                        className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                      >
+                        <option value="long">Long</option>
+                        <option value="short">Short</option>
+                      </select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-muted-foreground">Entry Price</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={editedTrade.entryPrice}
+                        onChange={(e) => setEditedTrade({ ...editedTrade, entryPrice: parseFloat(e.target.value) || 0 })}
+                        className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        placeholder="0.00"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-muted-foreground">Quantity</label>
+                      <input
+                        type="number"
+                        value={editedTrade.quantity}
+                        onChange={(e) => setEditedTrade({ ...editedTrade, quantity: parseInt(e.target.value) || 0 })}
+                        className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        placeholder="1"
+                      />
                     </div>
                   </div>
-                )}
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Quantity</label>
-                  <div className="text-lg font-semibold">{selectedTrade.quantity}</div>
+                  
+                  {/* Additional Details */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-muted-foreground">Exit Price (Optional)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={editedTrade.exitPrice || ''}
+                        onChange={(e) => setEditedTrade({ ...editedTrade, exitPrice: parseFloat(e.target.value) || undefined })}
+                        className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        placeholder="0.00"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-muted-foreground">P&L (Optional)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={editedTrade.pnl || ''}
+                        onChange={(e) => setEditedTrade({ ...editedTrade, pnl: parseFloat(e.target.value) || undefined })}
+                        className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        placeholder="0.00"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-muted-foreground">Status</label>
+                      <select
+                        value={editedTrade.status}
+                        onChange={(e) => setEditedTrade({ ...editedTrade, status: e.target.value as 'open' | 'closed' })}
+                        className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                      >
+                        <option value="open">Open</option>
+                        <option value="closed">Closed</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  {/* Date Fields */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-muted-foreground">Entry Date</label>
+                      <input
+                        type="date"
+                        value={editedTrade.entryDate}
+                        onChange={(e) => setEditedTrade({ ...editedTrade, entryDate: e.target.value })}
+                        className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-muted-foreground">Exit Date (Optional)</label>
+                      <input
+                        type="date"
+                        value={editedTrade.exitDate || ''}
+                        onChange={(e) => setEditedTrade({ ...editedTrade, exitDate: e.target.value || undefined })}
+                        className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Save/Cancel Buttons */}
+                  <div className="flex gap-3 justify-end pt-4 border-t">
+                    <Button 
+                      variant="outline"
+                      onClick={() => {
+                        setIsEditingTrade(false)
+                        setEditedTrade(null)
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <X className="h-4 w-4" />
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={() => {
+                        if (editedTrade) {
+                          updateTrade(selectedTrade.id, editedTrade)
+                          setSelectedTrade(editedTrade)
+                          setIsEditingTrade(false)
+                          setEditedTrade(null)
+                        }
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <Save className="h-4 w-4" />
+                      Save Changes
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                /* View Mode */
+                <>
+                  {/* Trade Details */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">Entry Price</label>
+                      <div className="text-lg font-semibold">{formatPrice(selectedTrade.entryPrice)}</div>
+                    </div>
+                    {selectedTrade.exitPrice && (
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">Exit Price</label>
+                        <div className="text-lg font-semibold">{formatPrice(selectedTrade.exitPrice)}</div>
+                      </div>
+                    )}
+                    {selectedTrade.pnl !== undefined && (
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">P&L</label>
+                        <div className={`text-lg font-semibold ${selectedTrade.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          ${selectedTrade.pnl.toFixed(2)}
+                        </div>
+                      </div>
+                    )}
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">Quantity</label>
+                      <div className="text-lg font-semibold">{selectedTrade.quantity}</div>
+                    </div>
+                  </div>
+                  
+                  {/* Additional Info Row */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">Status</label>
+                      <div className="text-sm">
+                        <Badge variant={selectedTrade.status === 'open' ? 'default' : 'secondary'}>
+                          {selectedTrade.status === 'open' ? 'Open' : 'Closed'}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">Entry Date</label>
+                      <div className="text-sm font-medium">{selectedTrade.entryDate}</div>
+                    </div>
+                    {selectedTrade.exitDate && (
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">Exit Date</label>
+                        <div className="text-sm font-medium">{selectedTrade.exitDate}</div>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
               
-              {/* Screenshot */}
-              {selectedTrade.screenshot && (
-                <div className="space-y-3">
+              {/* Screenshot Section */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
                   <label className="text-sm font-medium text-muted-foreground">Screenshot</label>
+                  {!selectedTrade.screenshot && !isAddingScreenshot && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setIsAddingScreenshot(true)}
+                      className="flex items-center gap-2"
+                    >
+                      <Copy className="h-4 w-4" />
+                      Add Screenshot
+                    </Button>
+                  )}
+                </div>
+                
+                {isAddingScreenshot ? (
+                  <div className="space-y-4">
+                    <div 
+                      className="relative border-2 border-dashed rounded-lg p-6 text-center transition-all duration-200 cursor-pointer group border-primary/50 bg-primary/5"
+                      onClick={() => document.getElementById('modal-paste-input')?.focus()}
+                    >
+                      <div className="space-y-2">
+                        <div className="mx-auto w-10 h-10 rounded-full flex items-center justify-center bg-primary/20 text-primary">
+                          <Copy className="h-5 w-5" />
+                        </div>
+                        <p className="text-sm font-medium">Paste Screenshot Here</p>
+                        <p className="text-xs text-muted-foreground">
+                          Copy your screenshot and paste it here ({navigator.platform.toLowerCase().includes('mac') ? '⌘ V' : 'Ctrl + V'})
+                        </p>
+                      </div>
+                      
+                      <input
+                        id="modal-paste-input"
+                        type="text"
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        onPaste={async (e) => {
+                          e.preventDefault()
+                          const clipboardData = e.clipboardData
+                          const items = Array.from(clipboardData.items)
+                          const imageItem = items.find(item => item.type.startsWith('image/'))
+                          
+                          if (imageItem) {
+                            const imageFile = imageItem.getAsFile()
+                            if (imageFile) {
+                              const reader = new FileReader()
+                              reader.onload = (event) => {
+                                const base64Image = event.target?.result as string
+                                const updatedTrade = { ...selectedTrade, screenshot: base64Image }
+                                updateTrade(selectedTrade.id, updatedTrade)
+                                setSelectedTrade(updatedTrade)
+                                setIsAddingScreenshot(false)
+                              }
+                              reader.readAsDataURL(imageFile)
+                            }
+                          }
+                        }}
+                        autoComplete="off"
+                      />
+                    </div>
+                    
+                    <div className="flex gap-2 justify-end">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setIsAddingScreenshot(false)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : selectedTrade.screenshot ? (
                   <div className="relative group">
                     <Image 
                       src={selectedTrade.screenshot} 
@@ -1212,8 +1485,13 @@ export function TradePaste() {
                       <span className="text-white text-sm bg-black/50 px-3 py-2 rounded">Click to view full size</span>
                     </div>
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div className="p-8 border-2 border-dashed border-muted-foreground/25 rounded-lg text-center text-muted-foreground">
+                    <Copy className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No screenshot attached</p>
+                  </div>
+                )}
+              </div>
               
               {/* Journal Entry */}
               <div className="space-y-3">
@@ -1254,8 +1532,9 @@ export function TradePaste() {
                       <Button 
                         size="sm"
                         onClick={() => {
-                          updateTrade(selectedTrade.id, { ...selectedTrade, notes: journalText })
-                          setSelectedTrade({ ...selectedTrade, notes: journalText })
+                          const updatedTrade = { ...selectedTrade, notes: journalText }
+                          updateTrade(selectedTrade.id, updatedTrade)
+                          setSelectedTrade(updatedTrade)
                           setIsEditingJournal(false)
                           setJournalText('')
                         }}
