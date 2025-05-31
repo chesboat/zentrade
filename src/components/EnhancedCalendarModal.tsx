@@ -329,249 +329,13 @@ export function EnhancedCalendarModal({
           )}
 
           {/* Activities Section */}
-          {(activities.length > 0 || isAddingActivity) && (
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <Zap className="h-5 w-5" />
-                  Activities ({activities.length})
-                </h3>
-                {!isAddingActivity && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsAddingActivity(true)}
-                    className="flex items-center gap-2"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Add Activity
-                  </Button>
-                )}
-              </div>
-              <div className="space-y-3">
-                {/* Add Activity Form */}
-                {isAddingActivity && (
-                  <div className="border-2 border-dashed border-primary/30 rounded-lg p-4 bg-primary/5">
-                    {!selectedActivityType ? (
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <h4 className="font-medium">Select Activity Type</h4>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleCancelAddActivity}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        <div className="grid gap-2">
-                          {ACTIVITY_OPTIONS.map((option) => (
-                            <Button
-                              key={option.type}
-                              variant="outline"
-                              className="h-auto p-3 justify-start"
-                              onClick={() => setSelectedActivityType(option.type)}
-                            >
-                              <div className="flex items-center gap-3 w-full">
-                                <div className="flex-shrink-0">
-                                  {option.icon}
-                                </div>
-                                <div className="text-left flex-grow">
-                                  <div className="font-medium">{option.label}</div>
-                                  <div className="text-sm text-muted-foreground">
-                                    {option.description}
-                                  </div>
-                                </div>
-                                <Badge variant="secondary" className="flex items-center gap-1">
-                                  <Zap className="h-3 w-3" />
-                                  +{option.xpReward}
-                                </Badge>
-                              </div>
-                            </Button>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                          <div className="flex items-center gap-2">
-                            {ACTIVITY_OPTIONS.find(opt => opt.type === selectedActivityType)?.icon}
-                            <span className="font-medium">
-                              {ACTIVITY_OPTIONS.find(opt => opt.type === selectedActivityType)?.label}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="secondary" className="flex items-center gap-1">
-                              <Zap className="h-3 w-3" />
-                              +{ACTIVITY_OPTIONS.find(opt => opt.type === selectedActivityType)?.xpReward} XP
-                            </Badge>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setSelectedActivityType(null)}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Activity Notes</label>
-                          <Textarea
-                            placeholder={`Describe your ${ACTIVITY_OPTIONS.find(opt => opt.type === selectedActivityType)?.label.toLowerCase()} for ${date.toLocaleDateString()}...`}
-                            value={activityNotes}
-                            onChange={(e) => setActivityNotes(e.target.value)}
-                            className="min-h-20"
-                          />
-                        </div>
-                        
-                        <div className="flex gap-2">
-                          <Button
-                            onClick={handleAddActivity}
-                            disabled={!activityNotes.trim() || isSubmittingActivity}
-                            className="flex-grow"
-                          >
-                            {isSubmittingActivity ? 'Adding...' : `Add Activity (+${ACTIVITY_OPTIONS.find(opt => opt.type === selectedActivityType)?.xpReward} XP)`}
-                          </Button>
-                          <Button
-                            variant="outline"
-                            onClick={handleCancelAddActivity}
-                            disabled={isSubmittingActivity}
-                          >
-                            Cancel
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Existing Activities */}
-                {activities.map((activity) => {
-                  const config = ActivityTypeConfig[activity.type]
-                  const isEditing = editingActivity === activity.id
-                  
-                  return (
-                    <div 
-                      key={activity.id}
-                      className={`border rounded-lg p-4 transition-colors group ${
-                        isEditing ? 'border-primary bg-primary/5' : 'hover:bg-muted/30'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <div 
-                          className="flex items-center gap-3 cursor-pointer flex-grow"
-                          onClick={() => !isEditing && handleEditActivity(activity)}
-                        >
-                          <div className={`
-                            flex items-center justify-center w-10 h-10 rounded-full border
-                            ${config.color}
-                          `}>
-                            {config.icon}
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="font-medium">{config.label}</span>
-                              <Badge variant="outline" className="text-xs flex items-center gap-1">
-                                <Zap className="h-3 w-3" />
-                                +{config.xp} XP
-                              </Badge>
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              Click to edit notes
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Edit/Delete Controls */}
-                        {!isEditing && (
-                          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleEditActivity(activity)
-                              }}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleDeleteActivity(activity.id!)
-                              }}
-                              className="text-red-600 hover:text-red-700"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Notes Content */}
-                      {isEditing ? (
-                        <div className="space-y-3">
-                          <Textarea
-                            value={editedNotes}
-                            onChange={(e) => setEditedNotes(e.target.value)}
-                            placeholder="Update your activity notes..."
-                            className="min-h-24"
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                          <div className="flex gap-2">
-                            <Button 
-                              size="sm" 
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleSaveActivity(activity.id!)
-                              }}
-                              disabled={!editedNotes.trim()}
-                            >
-                              <Save className="h-3 w-3 mr-1" />
-                              Save
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleCancelEdit()
-                              }}
-                            >
-                              <X className="h-3 w-3 mr-1" />
-                              Cancel
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div 
-                          className="text-sm text-muted-foreground bg-muted/30 p-3 rounded cursor-pointer"
-                          onClick={() => handleEditActivity(activity)}
-                        >
-                          {activity.notes.length > 200 
-                            ? `${activity.notes.substring(0, 200)}...` 
-                            : activity.notes
-                          }
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Add Activity Section (when no existing activities) */}
-          {activities.length === 0 && !isAddingActivity && (
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <Zap className="h-5 w-5" />
-                  Activities (0)
-                </h3>
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Zap className="h-5 w-5" />
+                Activities ({activities.length})
+              </h3>
+              {!isAddingActivity && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -581,119 +345,232 @@ export function EnhancedCalendarModal({
                   <Plus className="h-4 w-4" />
                   Add Activity
                 </Button>
-              </div>
-              <div className="text-center py-8 text-muted-foreground border border-dashed rounded-lg">
-                <Zap className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No activities logged for this day</p>
-                <p className="text-sm">Click &quot;Add Activity&quot; to log your analysis or training</p>
-              </div>
+              )}
             </div>
-          )}
 
-          {/* Activity Form when no existing activities */}
-          {activities.length === 0 && isAddingActivity && (
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <Zap className="h-5 w-5" />
-                  Add Activity
-                </h3>
-              </div>
-              <div className="border-2 border-dashed border-primary/30 rounded-lg p-4 bg-primary/5">
-                {!selectedActivityType ? (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-medium">Select Activity Type</h4>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleCancelAddActivity}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <div className="grid gap-2">
-                      {ACTIVITY_OPTIONS.map((option) => (
-                        <Button
-                          key={option.type}
-                          variant="outline"
-                          className="h-auto p-3 justify-start"
-                          onClick={() => setSelectedActivityType(option.type)}
-                        >
-                          <div className="flex items-center gap-3 w-full">
-                            <div className="flex-shrink-0">
-                              {option.icon}
-                            </div>
-                            <div className="text-left flex-grow">
-                              <div className="font-medium">{option.label}</div>
-                              <div className="text-sm text-muted-foreground">
-                                {option.description}
-                              </div>
-                            </div>
-                            <Badge variant="secondary" className="flex items-center gap-1">
-                              <Zap className="h-3 w-3" />
-                              +{option.xpReward}
-                            </Badge>
-                          </div>
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                      <div className="flex items-center gap-2">
-                        {ACTIVITY_OPTIONS.find(opt => opt.type === selectedActivityType)?.icon}
-                        <span className="font-medium">
-                          {ACTIVITY_OPTIONS.find(opt => opt.type === selectedActivityType)?.label}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="flex items-center gap-1">
-                          <Zap className="h-3 w-3" />
-                          +{ACTIVITY_OPTIONS.find(opt => opt.type === selectedActivityType)?.xpReward} XP
-                        </Badge>
+            <div className="space-y-3">
+              {/* Empty state when no activities and not adding */}
+              {activities.length === 0 && !isAddingActivity && (
+                <div className="text-center py-8 text-muted-foreground border border-dashed rounded-lg">
+                  <Zap className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No activities logged for this day</p>
+                  <p className="text-sm">Click &quot;Add Activity&quot; to log your analysis or training</p>
+                </div>
+              )}
+
+              {/* Add Activity Form */}
+              {isAddingActivity && (
+                <div className="border-2 border-dashed border-primary/30 rounded-lg p-4 bg-primary/5">
+                  {!selectedActivityType ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium">Select Activity Type</h4>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => setSelectedActivityType(null)}
+                          onClick={handleCancelAddActivity}
                         >
                           <X className="h-4 w-4" />
                         </Button>
                       </div>
+                      <div className="grid gap-2">
+                        {ACTIVITY_OPTIONS.map((option) => (
+                          <Button
+                            key={option.type}
+                            variant="outline"
+                            className="h-auto p-3 justify-start"
+                            onClick={() => setSelectedActivityType(option.type)}
+                          >
+                            <div className="flex items-center gap-3 w-full">
+                              <div className="flex-shrink-0">
+                                {option.icon}
+                              </div>
+                              <div className="text-left flex-grow">
+                                <div className="font-medium">{option.label}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  {option.description}
+                                </div>
+                              </div>
+                              <Badge variant="secondary" className="flex items-center gap-1">
+                                <Zap className="h-3 w-3" />
+                                +{option.xpReward}
+                              </Badge>
+                            </div>
+                          </Button>
+                        ))}
+                      </div>
                     </div>
-                    
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Activity Notes</label>
-                      <Textarea
-                        placeholder={`Describe your ${ACTIVITY_OPTIONS.find(opt => opt.type === selectedActivityType)?.label.toLowerCase()} for ${date.toLocaleDateString()}...`}
-                        value={activityNotes}
-                        onChange={(e) => setActivityNotes(e.target.value)}
-                        className="min-h-20"
-                      />
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          {ACTIVITY_OPTIONS.find(opt => opt.type === selectedActivityType)?.icon}
+                          <span className="font-medium">
+                            {ACTIVITY_OPTIONS.find(opt => opt.type === selectedActivityType)?.label}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="flex items-center gap-1">
+                            <Zap className="h-3 w-3" />
+                            +{ACTIVITY_OPTIONS.find(opt => opt.type === selectedActivityType)?.xpReward} XP
+                          </Badge>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSelectedActivityType(null)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Activity Notes</label>
+                        <Textarea
+                          placeholder={`Describe your ${ACTIVITY_OPTIONS.find(opt => opt.type === selectedActivityType)?.label.toLowerCase()} for ${date.toLocaleDateString()}...`}
+                          value={activityNotes}
+                          onChange={(e) => setActivityNotes(e.target.value)}
+                          className="min-h-20"
+                        />
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={handleAddActivity}
+                          disabled={!activityNotes.trim() || isSubmittingActivity}
+                          className="flex-grow"
+                        >
+                          {isSubmittingActivity ? 'Adding...' : `Add Activity (+${ACTIVITY_OPTIONS.find(opt => opt.type === selectedActivityType)?.xpReward} XP)`}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={handleCancelAddActivity}
+                          disabled={isSubmittingActivity}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
                     </div>
-                    
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={handleAddActivity}
-                        disabled={!activityNotes.trim() || isSubmittingActivity}
-                        className="flex-grow"
+                  )}
+                </div>
+              )}
+
+              {/* Existing Activities */}
+              {activities.map((activity) => {
+                const config = ActivityTypeConfig[activity.type]
+                const isEditing = editingActivity === activity.id
+                
+                return (
+                  <div 
+                    key={activity.id}
+                    className={`border rounded-lg p-4 transition-colors group ${
+                      isEditing ? 'border-primary bg-primary/5' : 'hover:bg-muted/30'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div 
+                        className="flex items-center gap-3 cursor-pointer flex-grow"
+                        onClick={() => !isEditing && handleEditActivity(activity)}
                       >
-                        {isSubmittingActivity ? 'Adding...' : `Add Activity (+${ACTIVITY_OPTIONS.find(opt => opt.type === selectedActivityType)?.xpReward} XP)`}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={handleCancelAddActivity}
-                        disabled={isSubmittingActivity}
-                      >
-                        Cancel
-                      </Button>
+                        <div className={`
+                          flex items-center justify-center w-10 h-10 rounded-full border
+                          ${config.color}
+                        `}>
+                          {config.icon}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-medium">{config.label}</span>
+                            <Badge variant="outline" className="text-xs flex items-center gap-1">
+                              <Zap className="h-3 w-3" />
+                              +{config.xp} XP
+                            </Badge>
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            Click to edit notes
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Edit/Delete Controls */}
+                      {!isEditing && (
+                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleEditActivity(activity)
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDeleteActivity(activity.id!)
+                            }}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
                     </div>
+
+                    {/* Notes Content */}
+                    {isEditing ? (
+                      <div className="space-y-3">
+                        <Textarea
+                          value={editedNotes}
+                          onChange={(e) => setEditedNotes(e.target.value)}
+                          placeholder="Update your activity notes..."
+                          className="min-h-24"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleSaveActivity(activity.id!)
+                            }}
+                            disabled={!editedNotes.trim()}
+                          >
+                            <Save className="h-3 w-3 mr-1" />
+                            Save
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleCancelEdit()
+                            }}
+                          >
+                            <X className="h-3 w-3 mr-1" />
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div 
+                        className="text-sm text-muted-foreground bg-muted/30 p-3 rounded cursor-pointer"
+                        onClick={() => handleEditActivity(activity)}
+                      >
+                        {activity.notes.length > 200 
+                          ? `${activity.notes.substring(0, 200)}...` 
+                          : activity.notes
+                        }
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                )
+              })}
             </div>
-          )}
+          </div>
         </CardContent>
       </Card>
     </div>

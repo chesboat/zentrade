@@ -2,19 +2,15 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Target, Flame, Star } from "lucide-react";
+import { CheckCircle, Target, Flame } from "lucide-react";
 import { useTrades } from "@/contexts/TradesContext";
 import { useTraderProgress } from "@/hooks/useTraderProgress";
-import { XPBar } from "@/components/gamification/XPBar";
 import { MotivatorCard } from "@/components/gamification/MotivatorCard";
 import { useMemo } from "react";
 
 export function TodaySummaryCard() {
   const { trades } = useTrades();
   const { 
-    xp, 
-    level, 
-    xpToNextLevel, 
     streak, 
     longestStreak,
     motivationalMessage,
@@ -64,7 +60,7 @@ export function TodaySummaryCard() {
         <CardContent className="pt-6">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            <p className="text-sm text-muted-foreground mt-2">Loading progress...</p>
+            <p className="text-sm text-muted-foreground mt-2">Loading today's activity...</p>
           </div>
         </CardContent>
       </Card>
@@ -78,34 +74,19 @@ export function TodaySummaryCard() {
         message={motivationalMessage}
         streak={streak}
         todayXP={todayXP}
-        level={level}
+        level={0} // Not needed here anymore
       />
 
       {/* Today's Performance Card */}
       <Card className="border-2 border-primary/10 bg-gradient-to-br from-background to-muted/20">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-xl">
-              <Target className="h-5 w-5 text-primary" />
-              Today at a Glance
-            </CardTitle>
-            {/* Level Badge */}
-            <Badge variant="secondary" className="flex items-center gap-1 px-3 py-1">
-              <Star className="h-3 w-3" />
-              Level {level}
-            </Badge>
-          </div>
-          
-          {/* XP Progress Bar */}
-          <XPBar 
-            level={level}
-            xp={xp}
-            xpToNextLevel={xpToNextLevel}
-            className="mt-3"
-          />
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <Target className="h-5 w-5 text-primary" />
+            Today at a Glance
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             {/* Trades Today */}
             <div className="text-center space-y-1">
               <div className="text-2xl font-bold">{todayStats.tradesCount}</div>
@@ -151,12 +132,6 @@ export function TodaySummaryCard() {
                 <span className="text-2xl font-bold">{streak}</span>
               </div>
               <p className="text-sm text-muted-foreground">Streak</p>
-            </div>
-
-            {/* Today's XP */}
-            <div className="text-center space-y-1">
-              <div className="text-2xl font-bold text-blue-600">+{todayXP}</div>
-              <p className="text-sm text-muted-foreground">XP Today</p>
             </div>
           </div>
 

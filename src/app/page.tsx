@@ -11,6 +11,7 @@ import { WeeklyCalendarPreview } from "@/components/WeeklyCalendarPreview";
 import { RecentActivity } from "@/components/RecentActivity";
 import { SmartNudges } from "@/components/SmartNudges";
 import { ActivityLogger } from "@/components/gamification/ActivityLogger";
+import { XPProgressCard } from "@/components/gamification/XPProgressCard";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { useTrades } from "@/contexts/TradesContext";
 import { calculateTradingStats } from "@/utils/tradingStats";
@@ -190,6 +191,9 @@ function Dashboard() {
           Track your progress, build consistent habits, and grow as a trader.
         </p>
       </div>
+
+      {/* XP Progress Card */}
+      <XPProgressCard />
 
       {/* Today at a Glance */}
       <TodaySummaryCard />
