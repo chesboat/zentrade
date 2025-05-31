@@ -13,7 +13,6 @@ import { SmartNudges } from "@/components/SmartNudges";
 import { useTrades } from "@/contexts/TradesContext";
 import { calculateTradingStats } from "@/utils/tradingStats";
 import { useMemo, useState, useEffect, useRef } from "react";
-import { Trade } from "@/mockData/trades";
 
 type DateFilterOption = 'all' | 'thisWeek' | 'lastWeek' | 'thisMonth' | 'lastMonth' | 'custom';
 
