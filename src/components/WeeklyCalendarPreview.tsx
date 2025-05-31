@@ -7,7 +7,6 @@ import { Calendar, ChevronRight, BookOpen, TrendingUp, TrendingDown } from "luci
 import { useTrades } from "@/contexts/TradesContext";
 import { useMemo, useState } from "react";
 import { Trade } from "@/mockData/trades";
-import Image from "next/image";
 
 interface DayStats {
   date: string;
@@ -247,12 +246,10 @@ function TradeDetailModal({ trade, onClose, onTradeUpdate }: {
             <div className="space-y-3">
               <label className="text-sm font-medium text-muted-foreground">Screenshot</label>
               <div className="relative group">
-                <Image 
+                <img 
                   src={trade.screenshot} 
                   alt="Trade screenshot" 
                   className="w-full rounded-lg border shadow-sm cursor-pointer max-h-96 object-contain bg-muted/20"
-                  width={300}
-                  height={200}
                   onClick={() => {
                     const newWindow = window.open()
                     if (newWindow) {

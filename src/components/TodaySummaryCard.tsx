@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, TrendingUp, Target } from "lucide-react";
+import { CheckCircle, TrendingUp, TrendingDown, BarChart3, Target } from "lucide-react";
 import { useTrades } from "@/contexts/TradesContext";
 import { useMemo } from "react";
 
