@@ -585,7 +585,7 @@ export function EnhancedCalendarModal({
               <div className="text-center py-8 text-muted-foreground border border-dashed rounded-lg">
                 <Zap className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>No activities logged for this day</p>
-                <p className="text-sm">Click "Add Activity" to log your analysis or training</p>
+                <p className="text-sm">Click &quot;Add Activity&quot; to log your analysis or training</p>
               </div>
             </div>
           )}
