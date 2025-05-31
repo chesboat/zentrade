@@ -34,7 +34,7 @@ export function useTraderProgress(): TraderProgressData {
     longestStreak: 0,
     todayXP: 0,
     motivationalMessage: "Welcome to your trading journey!",
-    activities: [] as any[],
+    activities: [] as Activity[],
     isLoading: true
   })
 

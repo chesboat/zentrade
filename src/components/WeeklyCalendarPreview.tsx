@@ -42,7 +42,7 @@ interface DayStats {
   hasJournal: boolean;
   isToday: boolean;
   trades: Trade[];
-  activities: Activity[];
+  activities: any[];
 }
 
 interface CalendarSummaryModalProps {
@@ -640,27 +640,6 @@ function TradeDetailModal({ trade, onClose, onTradeUpdate }: {
       </div>
     </div>
   )
-}
-
-const ActivityTypeConfig = {
-  backtest: {
-    icon: <BarChart3 className="h-3 w-3" />,
-    label: "Backtest",
-    color: "bg-blue-500",
-    textColor: "text-blue-600"
-  },
-  reengineer: {
-    icon: <RefreshCw className="h-3 w-3" />,
-    label: "Re-engineer",
-    color: "bg-purple-500",
-    textColor: "text-purple-600"
-  },
-  postTradeReview: {
-    icon: <FileText className="h-3 w-3" />,
-    label: "Analysis",
-    color: "bg-green-500",
-    textColor: "text-green-600"
-  }
 }
 
 export function WeeklyCalendarPreview() {

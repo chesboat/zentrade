@@ -34,7 +34,6 @@ interface CalendarSummaryModalProps {
   activities: Activity[]
   onClose: () => void
   onTradeClick: (trade: Trade) => void
-  onActivityUpdate: () => void
 }
 
 function CalendarDayCell({ date, dayData, isCurrentMonth, isToday, onClick }: CalendarDayCellProps) {
@@ -119,12 +118,10 @@ function CalendarDayCell({ date, dayData, isCurrentMonth, isToday, onClick }: Ca
   )
 }
 
-function CalendarSummaryModal({ date, trades, activities, onClose, onTradeClick, onActivityUpdate }: CalendarSummaryModalProps) {
+function CalendarSummaryModal({ date, trades, activities, onClose, onTradeClick }: CalendarSummaryModalProps) {
   if (!date) return null
 
   const totalPnL = trades.reduce((sum, trade) => sum + (trade.pnl || 0), 0)
-  const winCount = trades.filter(trade => (trade.pnl || 0) > 0).length
-  const lossCount = trades.filter(trade => (trade.pnl || 0) < 0).length
   const totalXP = activities.reduce((sum, activity) => {
     const activityXP = { backtest: 40, reengineer: 25, postTradeReview: 20 }
     return sum + (activityXP[activity.type] || 0)
@@ -1039,7 +1036,6 @@ export function CalendarView() {
             setSelectedTradeDetail(trade)
             setSelectedDate(null) // Close calendar modal when trade detail opens
           }}
-          onActivityUpdate={() => {}}
         />
       )}
 

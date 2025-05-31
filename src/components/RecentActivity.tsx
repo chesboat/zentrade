@@ -2,7 +2,6 @@
 
 import React, { useState, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { 
   ArrowUp, 
@@ -53,7 +52,6 @@ const ActivityTypeConfig = {
 export function RecentActivity() {
   const { trades } = useTrades()
   const { activities } = useTraderProgress()
-  const [selectedItem, setSelectedItem] = useState<UnifiedActivity | null>(null)
 
   const unifiedActivities = useMemo(() => {
     const tradeActivities: UnifiedActivity[] = trades.slice(0, 10).map(trade => ({
@@ -105,7 +103,6 @@ export function RecentActivity() {
     <div 
       key={activity.id}
       className="flex items-center justify-between p-4 hover:bg-muted/30 rounded-lg transition-colors cursor-pointer group"
-      onClick={() => setSelectedItem(activity)}
     >
       <div className="flex items-center space-x-3">
         {/* Trade Direction Icon */}
@@ -167,7 +164,6 @@ export function RecentActivity() {
       <div 
         key={unifiedActivity.id}
         className="flex items-center justify-between p-4 hover:bg-muted/30 rounded-lg transition-colors cursor-pointer group"
-        onClick={() => setSelectedItem(unifiedActivity)}
       >
         <div className="flex items-center space-x-3">
           {/* Activity Icon */}
