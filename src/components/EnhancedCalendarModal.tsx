@@ -100,10 +100,54 @@ export function EnhancedCalendarModal({
   if (!date) return null
 
   const totalPnL = trades.reduce((sum, trade) => sum + (trade.pnl || 0), 0)
-  const totalXP = activities.reduce((sum, activity) => {
+  
+  // Calculate XP from activities
+  const activitiesXP = activities.reduce((sum, activity) => {
     const config = ActivityTypeConfig[activity.type]
     return sum + (config?.xp || 0)
   }, 0)
+  
+  // Calculate XP from trades
+  const tradesXP = trades.reduce((sum, trade) => {
+    let tradeXP = 0
+    
+    // Trade logged
+    tradeXP += 10 // XP_RULES.TRADE_LOGGED
+    
+    // Emotion tagged and journal written
+    if (trade.notes && trade.notes.trim().length > 0) {
+      tradeXP += 10 // XP_RULES.EMOTION_TAGGED
+      tradeXP += 10 // XP_RULES.JOURNAL_WRITTEN
+      
+      // Bonus for journaling a loss
+      if (trade.pnl !== undefined && trade.pnl < 0) {
+        tradeXP += 20 // XP_RULES.LOSS_JOURNALED_WITH_EMOTION
+      }
+    }
+    
+    return sum + tradeXP
+  }, 0)
+  
+  // Add rules followed bonus if applicable (25 XP per day)
+  const hasTradesWithJournal = trades.some(trade => trade.notes && trade.notes.trim().length > 0)
+  const rulesFollowedXP = (trades.length > 0 && hasTradesWithJournal) ? 25 : 0
+  
+  const totalXP = activitiesXP + tradesXP + rulesFollowedXP
+  
+  // Helper function to calculate XP for individual trade
+  const getTradeXP = (trade: Trade) => {
+    let xp = 10 // Base trade logged XP
+    
+    if (trade.notes && trade.notes.trim().length > 0) {
+      xp += 20 // Emotion tagged + journal written
+      
+      if (trade.pnl !== undefined && trade.pnl < 0) {
+        xp += 20 // Loss journaled bonus
+      }
+    }
+    
+    return xp
+  }
 
   const handleEditActivity = (activity: Activity) => {
     setEditingActivity(activity.id || '')
@@ -276,6 +320,10 @@ export function EnhancedCalendarModal({
                             <span className="text-sm text-muted-foreground">
                               {trade.quantity} contracts
                             </span>
+                            <Badge variant="outline" className="flex items-center gap-1 text-xs">
+                              <Zap className="h-3 w-3" />
+                              +{getTradeXP(trade)} XP
+                            </Badge>
                           </div>
                           <div className="text-sm text-muted-foreground">
                             {trade.strategy}

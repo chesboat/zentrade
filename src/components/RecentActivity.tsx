@@ -134,6 +134,21 @@ export function RecentActivity() {
     setEditedNotes('')
   }
 
+  // Helper function to calculate XP for individual trade
+  const getTradeXP = (trade: Trade) => {
+    let xp = 10 // Base trade logged XP
+    
+    if (trade.notes && trade.notes.trim().length > 0) {
+      xp += 20 // Emotion tagged + journal written
+      
+      if (trade.pnl !== undefined && trade.pnl < 0) {
+        xp += 20 // Loss journaled bonus
+      }
+    }
+    
+    return xp
+  }
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
     const today = new Date()
@@ -195,6 +210,10 @@ export function RecentActivity() {
                 Journal
               </Badge>
             )}
+            <Badge variant="outline" className="flex items-center gap-1 text-xs">
+              <Zap className="h-3 w-3" />
+              +{getTradeXP(trade)} XP
+            </Badge>
           </div>
           <div className="flex items-center space-x-2 text-sm text-muted-foreground">
             <Calendar className="h-3 w-3" />
