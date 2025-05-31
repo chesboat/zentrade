@@ -88,7 +88,7 @@ export function EnhancedCalendarModal({
       await updateActivity(activityId, user.uid, { notes: editedNotes.trim() })
       setEditingActivity(null)
       setEditedNotes('')
-      onDataUpdate() // Trigger refresh
+      // Note: Data will refresh automatically via useTraderProgress hook
     } catch (error) {
       console.error('Error updating activity:', error)
       alert('Failed to update activity. Please try again.')
@@ -101,7 +101,7 @@ export function EnhancedCalendarModal({
     if (confirm('Are you sure you want to delete this activity?')) {
       try {
         await deleteActivity(activityId, user.uid)
-        onDataUpdate() // Trigger refresh
+        // Note: Data will refresh automatically via useTraderProgress hook
       } catch (error) {
         console.error('Error deleting activity:', error)
         alert('Failed to delete activity. Please try again.')
@@ -113,7 +113,7 @@ export function EnhancedCalendarModal({
     if (confirm('Are you sure you want to delete this trade?')) {
       try {
         await deleteTrade(tradeId)
-        onDataUpdate() // Trigger refresh
+        // Note: Data will refresh automatically via useTraderProgress hook
       } catch (error) {
         console.error('Error deleting trade:', error)
         alert('Failed to delete trade. Please try again.')

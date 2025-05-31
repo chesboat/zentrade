@@ -299,11 +299,7 @@ export const addActivity = async (
     }
     
     await addDoc(collection(db, 'activities'), activity)
-    
-    // Update user progress after adding activity
-    const userTrades = await getUserTrades(userId)
-    const userActivities = await getUserActivities(userId)
-    await updateUserProgress(userId, userTrades, [...userActivities, activity])
+    // Note: Progress update will be handled automatically by useTraderProgress hook
     
   } catch (error) {
     console.error('Error adding activity:', error)
@@ -408,11 +404,7 @@ export const updateActivity = async (
       ...updates,
       updatedAt: serverTimestamp()
     })
-    
-    // Update user progress after updating activity
-    const userTrades = await getUserTrades(userId)
-    const userActivities = await getUserActivities(userId)
-    await updateUserProgress(userId, userTrades, userActivities)
+    // Note: Progress update will be handled automatically by useTraderProgress hook
     
   } catch (error) {
     console.error('Error updating activity:', error)
@@ -425,11 +417,7 @@ export const deleteActivity = async (activityId: string, userId: string): Promis
   try {
     // Delete the activity
     await deleteDoc(doc(db, 'activities', activityId))
-    
-    // Update user progress after deleting activity
-    const userTrades = await getUserTrades(userId)
-    const userActivities = await getUserActivities(userId)
-    await updateUserProgress(userId, userTrades, userActivities)
+    // Note: Progress update will be handled automatically by useTraderProgress hook
     
   } catch (error) {
     console.error('Error deleting activity:', error)

@@ -77,9 +77,7 @@ export function ActivityLogger() {
       await addActivity(user.uid, selectedActivity, notes.trim())
       console.log('Activity added successfully')
       
-      // Force immediate refresh of progress data
-      await refreshProgress()
-      console.log('Progress refreshed')
+      // Note: Progress will refresh automatically via useTraderProgress hook
       
       setShowSuccess(true)
       setSelectedActivity(null)

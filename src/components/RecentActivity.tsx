@@ -94,9 +94,9 @@ export function RecentActivity() {
 
     try {
       await updateActivity(activityId, user.uid, { notes: editedNotes.trim() })
-      await refreshProgress() // Refresh to get updated data
       setEditingActivity(null)
       setEditedNotes('')
+      // Note: Data will refresh automatically via useTraderProgress hook
     } catch (error) {
       console.error('Error updating activity:', error)
       alert('Failed to update activity. Please try again.')
@@ -109,7 +109,7 @@ export function RecentActivity() {
     if (confirm('Are you sure you want to delete this activity?')) {
       try {
         await deleteActivity(activityId, user.uid)
-        await refreshProgress() // Refresh to get updated data
+        // Note: Data will refresh automatically via useTraderProgress hook
       } catch (error) {
         console.error('Error deleting activity:', error)
         alert('Failed to delete activity. Please try again.')
@@ -121,7 +121,7 @@ export function RecentActivity() {
     if (confirm('Are you sure you want to delete this trade?')) {
       try {
         await deleteTrade(tradeId)
-        await refreshProgress() // Refresh to get updated data
+        // Note: Data will refresh automatically via useTraderProgress hook
       } catch (error) {
         console.error('Error deleting trade:', error)
         alert('Failed to delete trade. Please try again.')

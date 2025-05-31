@@ -754,8 +754,8 @@ export function CalendarView() {
     : []
 
   const handleDataUpdate = async () => {
-    // Refresh progress data to get updated activities and user progress
-    await refreshProgress()
+    // Note: Data updates are now handled automatically by useTraderProgress hook
+    // This function is kept for interface compatibility but does nothing
   }
 
   return (

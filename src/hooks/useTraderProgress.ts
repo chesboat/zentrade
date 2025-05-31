@@ -7,7 +7,7 @@ import {
   getUserActivities,
   Activity 
 } from '@/services/xpService'
-import { doc, getDoc } from 'firebase/firestore'
+import { doc, getDoc, collection, query, where, orderBy, onSnapshot } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 
 export interface TraderProgressData {
@@ -36,6 +36,65 @@ export const useTraderProgress = () => {
     activities: []
   })
   const [isLoading, setIsLoading] = useState(true)
+  const [activities, setActivities] = useState<Activity[]>([])
+
+  // Listen to activities in real-time
+  useEffect(() => {
+    if (!user) {
+      setActivities([])
+      return
+    }
+
+    const activitiesQuery = query(
+      collection(db, 'activities'),
+      where('userId', '==', user.uid),
+      orderBy('createdAt', 'desc')
+    )
+
+    const unsubscribe = onSnapshot(
+      activitiesQuery,
+      (snapshot) => {
+        const activitiesData = snapshot.docs.map(doc => ({ 
+          id: doc.id, 
+          ...doc.data() 
+        } as Activity))
+        setActivities(activitiesData)
+      },
+      (error) => {
+        console.error('Error fetching activities:', error)
+        // Fallback to simple query if composite index not ready
+        try {
+          const simpleQuery = query(
+            collection(db, 'activities'),
+            where('userId', '==', user.uid)
+          )
+          const fallbackUnsubscribe = onSnapshot(simpleQuery, (snapshot) => {
+            const activitiesData = snapshot.docs.map(doc => ({ 
+              id: doc.id, 
+              ...doc.data() 
+            } as Activity))
+            // Manual sort by createdAt
+            activitiesData.sort((a, b) => {
+              const aTime = a.createdAt && typeof a.createdAt === 'object' && 'seconds' in a.createdAt 
+                ? (a.createdAt as { seconds: number }).seconds 
+                : 0
+              const bTime = b.createdAt && typeof b.createdAt === 'object' && 'seconds' in b.createdAt 
+                ? (b.createdAt as { seconds: number }).seconds 
+                : 0
+              return bTime - aTime
+            })
+            setActivities(activitiesData)
+          })
+          return fallbackUnsubscribe
+        } catch (fallbackError) {
+          console.error('Fallback query also failed:', fallbackError)
+          setActivities([])
+        }
+      }
+    )
+
+    return unsubscribe
+  }, [user])
 
   const refreshProgress = useCallback(async () => {
     if (!user) {
@@ -56,9 +115,6 @@ export const useTraderProgress = () => {
         return
       }
 
-      // Get user activities
-      const activities = await getUserActivities(user.uid)
-      
       // Update user progress with current trades and activities
       await updateUserProgress(user.uid, trades, activities)
       
@@ -117,19 +173,19 @@ export const useTraderProgress = () => {
     } finally {
       setIsLoading(false)
     }
-  }, [user, trades])
+  }, [user, trades, activities])
 
   // Refresh on mount and when user changes
   useEffect(() => {
     refreshProgress()
   }, [refreshProgress])
 
-  // Auto-refresh when trades change (for real-time updates)
+  // Auto-refresh when trades or activities change (for real-time updates)
   useEffect(() => {
-    if (user && trades.length >= 0) { // Check trades.length >= 0 to trigger on both additions and deletions
+    if (user && (trades.length >= 0 || activities.length >= 0)) {
       refreshProgress()
     }
-  }, [trades, user, refreshProgress])
+  }, [trades, activities, user, refreshProgress])
 
   return {
     ...progressData,
