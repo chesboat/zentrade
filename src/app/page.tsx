@@ -1,7 +1,9 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, Shield, Trophy } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { DollarSign, Shield, Trophy, Calendar, ChevronDown } from "lucide-react";
 import { TradePaste } from "@/components/TradePaste";
 import { CalendarView } from "@/components/CalendarView";
 import { TodaySummaryCard } from "@/components/TodaySummaryCard";
@@ -10,11 +12,131 @@ import { RecentTrades } from "@/components/RecentTrades";
 import { SmartNudges } from "@/components/SmartNudges";
 import { useTrades } from "@/contexts/TradesContext";
 import { calculateTradingStats } from "@/utils/tradingStats";
-import { useMemo } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
+import { Trade } from "@/mockData/trades";
+
+type DateFilterOption = 'all' | 'thisWeek' | 'lastWeek' | 'thisMonth' | 'lastMonth' | 'custom';
+
+interface DateFilter {
+  label: string;
+  value: DateFilterOption;
+  getDateRange: () => { start: Date; end: Date };
+}
+
+const dateFilters: DateFilter[] = [
+  {
+    label: 'All Time',
+    value: 'all',
+    getDateRange: () => ({ start: new Date(2020, 0, 1), end: new Date() })
+  },
+  {
+    label: 'This Week',
+    value: 'thisWeek',
+    getDateRange: () => {
+      const now = new Date();
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay());
+      startOfWeek.setHours(0, 0, 0, 0);
+      const endOfWeek = new Date();
+      endOfWeek.setHours(23, 59, 59, 999);
+      return { start: startOfWeek, end: endOfWeek };
+    }
+  },
+  {
+    label: 'Last Week',
+    value: 'lastWeek',
+    getDateRange: () => {
+      const now = new Date();
+      const startOfLastWeek = new Date(now);
+      startOfLastWeek.setDate(now.getDate() - now.getDay() - 7);
+      startOfLastWeek.setHours(0, 0, 0, 0);
+      const endOfLastWeek = new Date(startOfLastWeek);
+      endOfLastWeek.setDate(startOfLastWeek.getDate() + 6);
+      endOfLastWeek.setHours(23, 59, 59, 999);
+      return { start: startOfLastWeek, end: endOfLastWeek };
+    }
+  },
+  {
+    label: 'This Month',
+    value: 'thisMonth',
+    getDateRange: () => {
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+      const end = new Date();
+      end.setHours(23, 59, 59, 999);
+      return { start, end };
+    }
+  },
+  {
+    label: 'Last Month',
+    value: 'lastMonth',
+    getDateRange: () => {
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const end = new Date(now.getFullYear(), now.getMonth(), 0);
+      end.setHours(23, 59, 59, 999);
+      return { start, end };
+    }
+  }
+];
 
 export default function Home() {
   const { trades } = useTrades();
-  const stats = useMemo(() => calculateTradingStats(trades), [trades]);
+  const [selectedDateFilter, setSelectedDateFilter] = useState<DateFilterOption>('all');
+  const [showDateDropdown, setShowDateDropdown] = useState(false);
+  const [customDateRange, setCustomDateRange] = useState({ start: '', end: '' });
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Handle click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDateDropdown(false);
+      }
+    };
+
+    if (showDateDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showDateDropdown]);
+
+  const filteredTrades = useMemo(() => {
+    if (selectedDateFilter === 'all') {
+      return trades;
+    }
+
+    if (selectedDateFilter === 'custom') {
+      if (!customDateRange.start || !customDateRange.end) {
+        return trades;
+      }
+      
+      const start = new Date(customDateRange.start);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(customDateRange.end);
+      end.setHours(23, 59, 59, 999);
+      
+      return trades.filter(trade => {
+        const tradeDate = new Date(trade.exitDate || trade.entryDate);
+        return tradeDate >= start && tradeDate <= end;
+      });
+    }
+
+    const filter = dateFilters.find(f => f.value === selectedDateFilter);
+    if (!filter) return trades;
+
+    const { start, end } = filter.getDateRange();
+    
+    return trades.filter(trade => {
+      const tradeDate = new Date(trade.exitDate || trade.entryDate);
+      return tradeDate >= start && tradeDate <= end;
+    });
+  }, [trades, selectedDateFilter, customDateRange]);
+
+  const stats = useMemo(() => calculateTradingStats(filteredTrades), [filteredTrades]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -26,6 +148,26 @@ export default function Home() {
 
   const formatPercent = (value: number) => {
     return `${value.toFixed(1)}%`;
+  };
+
+  const getSelectedFilterLabel = () => {
+    if (selectedDateFilter === 'custom') {
+      if (customDateRange.start && customDateRange.end) {
+        const start = new Date(customDateRange.start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const end = new Date(customDateRange.end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        return `${start} - ${end}`;
+      }
+      return 'Custom Range';
+    }
+    const filter = dateFilters.find(f => f.value === selectedDateFilter);
+    return filter?.label || 'All Time';
+  };
+
+  const applyCustomDateRange = () => {
+    if (customDateRange.start && customDateRange.end) {
+      setSelectedDateFilter('custom');
+      setShowDateDropdown(false);
+    }
   };
 
   return (
@@ -54,7 +196,98 @@ export default function Home() {
 
       {/* Performance Metrics - Grouped */}
       <div className="space-y-6">
-        <h2 className="text-xl font-semibold tracking-tight">Performance Overview</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold tracking-tight">Performance Overview</h2>
+          
+          {/* Date Filter Dropdown */}
+          <div className="relative" ref={dropdownRef}>
+            <Button
+              variant="outline"
+              onClick={() => setShowDateDropdown(!showDateDropdown)}
+              className="flex items-center gap-2"
+            >
+              <Calendar className="h-4 w-4" />
+              {getSelectedFilterLabel()}
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+            
+            {showDateDropdown && (
+              <div className="absolute right-0 top-full mt-2 w-56 bg-background border rounded-lg shadow-lg z-10">
+                <div className="p-2 space-y-1">
+                  {dateFilters.map((filter) => (
+                    <button
+                      key={filter.value}
+                      onClick={() => {
+                        setSelectedDateFilter(filter.value);
+                        setShowDateDropdown(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                        selectedDateFilter === filter.value
+                          ? 'bg-primary text-primary-foreground'
+                          : 'hover:bg-muted'
+                      }`}
+                    >
+                      {filter.label}
+                    </button>
+                  ))}
+                  
+                  {/* Custom Date Range Option */}
+                  <div className="border-t pt-2 mt-2">
+                    <div className="px-3 py-2 text-sm font-medium text-muted-foreground">
+                      Custom Range
+                    </div>
+                    <div className="px-3 py-2 space-y-2">
+                      <div className="space-y-1">
+                        <label className="text-xs text-muted-foreground">From</label>
+                        <input
+                          type="date"
+                          value={customDateRange.start}
+                          onChange={(e) => setCustomDateRange(prev => ({ ...prev, start: e.target.value }))}
+                          className="w-full px-2 py-1 border rounded text-xs"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs text-muted-foreground">To</label>
+                        <input
+                          type="date"
+                          value={customDateRange.end}
+                          onChange={(e) => setCustomDateRange(prev => ({ ...prev, end: e.target.value }))}
+                          className="w-full px-2 py-1 border rounded text-xs"
+                        />
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={applyCustomDateRange}
+                        className="w-full text-xs"
+                        disabled={!customDateRange.start || !customDateRange.end}
+                      >
+                        Apply Range
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Filter Summary Badge */}
+        {selectedDateFilter !== 'all' && (
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="flex items-center gap-1">
+              <Calendar className="h-3 w-3" />
+              Showing {getSelectedFilterLabel()} • {filteredTrades.filter(t => t.status === 'closed').length} trades
+            </Badge>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedDateFilter('all')}
+              className="text-xs"
+            >
+              View All Time
+            </Button>
+          </div>
+        )}
         
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Performance Overview */}
