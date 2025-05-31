@@ -16,16 +16,11 @@ export function XPProgressCard() {
     isLoading
   } = useTraderProgress();
 
-  // Calculate today's XP from daily log
+  // Calculate today XP from daily log
   const todayXP = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
     return dailyXPLog[today] || 0;
   }, [dailyXPLog]);
-
-  // Calculate total XP for current level
-  const currentLevelBaseXP = useMemo(() => {
-    return Array.from({ length: level - 1 }, (_, i) => (i + 1) * 100).reduce((a, b) => a + b, 0);
-  }, [level]);
 
   const currentLevelTotalXP = level * 100;
   const currentLevelProgress = currentLevelTotalXP - xpToNextLevel;
@@ -115,7 +110,7 @@ export function XPProgressCard() {
         <div className="grid grid-cols-3 gap-4 pt-4 border-t border-blue-200">
           <div className="text-center space-y-1">
             <div className="text-2xl font-bold text-green-600">+{todayXP}</div>
-            <p className="text-xs text-muted-foreground">Today's XP</p>
+            <p className="text-xs text-muted-foreground">Today&apos;s XP</p>
           </div>
           
           <div className="text-center space-y-1">

@@ -18,7 +18,7 @@ export function TodaySummaryCard() {
     isLoading
   } = useTraderProgress();
   
-  // Calculate today's XP from daily log
+  // Calculate today XP from daily log
   const todayXP = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
     return dailyXPLog[today] || 0;
@@ -60,7 +60,7 @@ export function TodaySummaryCard() {
         <CardContent className="pt-6">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            <p className="text-sm text-muted-foreground mt-2">Loading today's activity...</p>
+            <p className="text-sm text-muted-foreground mt-2">Loading today&apos;s activity...</p>
           </div>
         </CardContent>
       </Card>
