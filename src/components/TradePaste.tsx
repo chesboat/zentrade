@@ -589,7 +589,8 @@ export function TradePaste() {
       status: parsedTrade.outcome ? 'closed' : 'open',
       notes: journalText || undefined,
       strategy: 'TradingView Import',
-      screenshot: parsedTrade.screenshot
+      screenshot: parsedTrade.screenshot,
+      riskAmount: parsedTrade.actualRisk // Store the original risk amount
     }
     
     addTrade(newTrade)
@@ -626,38 +627,42 @@ export function TradePaste() {
       maxReward?: number
     } = {}
     
-    // Calculate risk/reward if we have entry, exit, and a reasonable stop level
+    // Use stored risk amount if available, otherwise estimate
+    if (trade.riskAmount) {
+      metrics.riskAmount = trade.riskAmount
+    } else if (trade.entryPrice && trade.exitPrice) {
+      // Fallback estimation only if no stored risk amount
+      const estimatedStopDistance = trade.entryPrice * 0.02
+      const riskPerPoint = (trade.pnl && trade.entryPrice && trade.exitPrice) 
+        ? Math.abs(trade.pnl / Math.abs(trade.exitPrice - trade.entryPrice))
+        : 25 // Default for futures
+      metrics.riskAmount = estimatedStopDistance * riskPerPoint * trade.quantity
+    }
+    
+    // Calculate risk/reward and other metrics if we have the necessary data
     if (trade.entryPrice && trade.exitPrice) {
       const pointsGainedLost = trade.type === 'long' 
         ? trade.exitPrice - trade.entryPrice
         : trade.entryPrice - trade.exitPrice
       metrics.pointsGainedLost = pointsGainedLost
       
-      // Estimate stop loss at 2% from entry if not provided
-      const estimatedStopDistance = trade.entryPrice * 0.02
-      const actualStopDistance = estimatedStopDistance
-      
-      // Calculate risk amount (assuming standard position sizing)
-      const riskPerPoint = (trade.pnl && pointsGainedLost !== 0) 
-        ? Math.abs(trade.pnl / pointsGainedLost)
-        : 25 // Default for futures
-      
-      metrics.riskAmount = actualStopDistance * riskPerPoint * trade.quantity
-      metrics.maxRisk = metrics.riskAmount
-      
-      // R-Multiple calculation
-      if (metrics.riskAmount && metrics.riskAmount > 0) {
-        metrics.rMultiple = (trade.pnl || 0) / metrics.riskAmount
-        metrics.returnOnRisk = ((trade.pnl || 0) / metrics.riskAmount) * 100
+      // R-Multiple calculation using stored or calculated risk amount
+      if (metrics.riskAmount && metrics.riskAmount > 0 && trade.pnl !== undefined) {
+        metrics.rMultiple = trade.pnl / metrics.riskAmount
+        metrics.returnOnRisk = (trade.pnl / metrics.riskAmount) * 100
       }
       
       // Risk percentage (assuming $10k account - could be made configurable)
       const accountSize = 10000
-      metrics.riskPercentage = metrics.riskAmount ? (metrics.riskAmount / accountSize) * 100 : 0
+      if (metrics.riskAmount) {
+        metrics.riskPercentage = (metrics.riskAmount / accountSize) * 100
+      }
       
-      // Calculate max reward potential
-      const rewardDistance = Math.abs(pointsGainedLost)
-      metrics.maxReward = rewardDistance * riskPerPoint * trade.quantity
+      // Calculate max reward potential (estimate based on actual P&L if available)
+      if (trade.pnl !== undefined && pointsGainedLost !== 0) {
+        const riskPerPoint = Math.abs(trade.pnl / pointsGainedLost)
+        metrics.maxReward = Math.abs(pointsGainedLost) * riskPerPoint * trade.quantity
+      }
       
       // Risk/Reward ratio
       if (metrics.riskAmount && metrics.maxReward) {

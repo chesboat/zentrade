@@ -13,6 +13,7 @@ export interface Trade {
   notes?: string;
   strategy: string;
   screenshot?: string; // base64 image data
+  riskAmount?: number; // original risk amount from TradingView
 }
 
 // Empty array for production - users will add their own trades
