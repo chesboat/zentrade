@@ -11,7 +11,10 @@ import {
   BookOpen,
   ChevronRight,
   Target,
-  Copy
+  Copy,
+  BarChart3,
+  RefreshCw,
+  FileText
 } from "lucide-react";
 import { useTrades } from "@/contexts/TradesContext";
 import { useTraderProgress } from "@/hooks/useTraderProgress";
@@ -500,6 +503,13 @@ export function WeeklyCalendarPreview() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTradeDetail, setSelectedTradeDetail] = useState<Trade | null>(null);
 
+  // Activity icons to match main calendar
+  const activityIcons = {
+    backtest: <BarChart3 className="h-2.5 w-2.5 text-blue-500" />,
+    reengineer: <RefreshCw className="h-2.5 w-2.5 text-purple-500" />,
+    postTradeReview: <FileText className="h-2.5 w-2.5 text-green-500" />
+  }
+
   const weekData = useMemo(() => {
     const today = new Date();
     const startOfWeek = new Date(today);
@@ -625,11 +635,21 @@ export function WeeklyCalendarPreview() {
                         {day.tradeCount}
                       </Badge>
                     )}
-                    {day.activityCount > 0 && (
-                      <Badge variant="outline" className="text-xs px-1 py-0 border-primary/50 text-primary">
-                        <Target className="h-3 w-3 mr-1" />
-                        {day.activityCount}
-                      </Badge>
+                    {day.activities.length > 0 && (
+                      <div className="flex items-center gap-1">
+                        {day.activities.slice(0, 2).map((activity, index) => (
+                          <div 
+                            key={index}
+                            className="p-0.5 rounded-full bg-muted/50 border"
+                            title={`${activity.type} activity`}
+                          >
+                            {activityIcons[activity.type]}
+                          </div>
+                        ))}
+                        {day.activities.length > 2 && (
+                          <span className="text-xs text-muted-foreground">+{day.activities.length - 2}</span>
+                        )}
+                      </div>
                     )}
                   </div>
                   
