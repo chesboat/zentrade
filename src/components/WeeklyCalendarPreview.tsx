@@ -14,7 +14,8 @@ import {
   Copy,
   BarChart3,
   RefreshCw,
-  FileText
+  FileText,
+  Zap
 } from "lucide-react";
 import { useTrades } from "@/contexts/TradesContext";
 import { useTraderProgress } from "@/hooks/useTraderProgress";
@@ -34,6 +35,7 @@ interface DayStats {
   isToday: boolean;
   trades: Trade[];
   activities: Activity[];
+  totalXP: number;
 }
 
 function TradeDetailModal({ trade, onClose, onTradeUpdate }: { 
@@ -537,6 +539,16 @@ export function WeeklyCalendarPreview() {
       const hasJournal = dayTrades.some(trade => trade.notes && trade.notes.trim().length > 0) ||
                          dayActivities.length > 0;
       
+      // Calculate XP for activities (matching main calendar logic)
+      const totalXP = dayActivities.reduce((sum, activity) => {
+        const activityXP = {
+          backtest: 40,
+          reengineer: 25,
+          postTradeReview: 20
+        }
+        return sum + (activityXP[activity.type] || 0)
+      }, 0)
+      
       days.push({
         date: dateString,
         dayName: date.toLocaleDateString('en-US', { weekday: 'short' }),
@@ -547,7 +559,8 @@ export function WeeklyCalendarPreview() {
         hasJournal,
         isToday: dateString === today.toISOString().split('T')[0],
         trades: dayTrades,
-        activities: dayActivities
+        activities: dayActivities,
+        totalXP
       });
     }
     
@@ -606,38 +619,56 @@ export function WeeklyCalendarPreview() {
           </div>
         </CardHeader>
         <CardContent>
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-2 mb-2">
+            {weekData.map((day) => (
+              <div key={`header-${day.date}`} className="text-center">
+                <div className="text-xs font-medium text-muted-foreground">
+                  {day.dayName}
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          {/* Day cells */}
           <div className="grid grid-cols-7 gap-2">
             {weekData.map((day) => (
               <div
                 key={day.date}
                 className={`
-                  relative p-3 rounded-lg border-2 transition-all cursor-pointer hover:shadow-md
+                  relative p-2 rounded-lg border-2 transition-all cursor-pointer hover:shadow-md h-24
                   ${day.isToday ? 'ring-2 ring-primary ring-offset-2' : ''}
                   ${getPnLColor(day.pnl)}
                 `}
                 onClick={() => handleDayClick(day)}
               >
-                {/* Day Header */}
-                <div className="text-center space-y-1">
-                  <div className="text-xs font-medium opacity-70">
-                    {day.dayName}
+                <div className="h-full flex flex-col justify-between">
+                  {/* Header row - date and indicators */}
+                  <div className="flex items-start justify-between">
+                    <span className="text-sm font-medium">
+                      {day.dayNumber}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      {day.hasJournal && (
+                        <BookOpen className="h-3 w-3 text-blue-500" />
+                      )}
+                      {day.totalXP > 0 && (
+                        <div className="flex items-center">
+                          <Zap className="h-2.5 w-2.5 text-yellow-500" />
+                          <span className="text-xs text-yellow-600 font-medium ml-0.5">
+                            {day.totalXP}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-lg font-bold">
-                    {day.dayNumber}
-                  </div>
-                </div>
 
-                {/* Stats */}
-                <div className="mt-2 space-y-1">
-                  <div className="flex justify-center gap-1">
-                    {day.tradeCount > 0 && (
-                      <Badge variant="secondary" className="text-xs px-1 py-0">
-                        {day.tradeCount}
-                      </Badge>
-                    )}
+                  {/* Content area */}
+                  <div className="space-y-1 flex-1 flex flex-col justify-end">
+                    {/* Activity indicators */}
                     {day.activities.length > 0 && (
-                      <div className="flex items-center gap-1">
-                        {day.activities.slice(0, 2).map((activity, index) => (
+                      <div className="flex items-center gap-1 mb-1">
+                        {day.activities.slice(0, 3).map((activity, index) => (
                           <div 
                             key={index}
                             className="p-0.5 rounded-full bg-muted/50 border"
@@ -646,24 +677,28 @@ export function WeeklyCalendarPreview() {
                             {activityIcons[activity.type]}
                           </div>
                         ))}
-                        {day.activities.length > 2 && (
-                          <span className="text-xs text-muted-foreground">+{day.activities.length - 2}</span>
+                        {day.activities.length > 3 && (
+                          <span className="text-xs text-muted-foreground">+{day.activities.length - 3}</span>
                         )}
                       </div>
                     )}
+
+                    {/* Trade info */}
+                    {day.trades.length > 0 && (
+                      <div className="space-y-1">
+                        <div className={`text-xs font-medium px-1 py-0.5 rounded border ${
+                          day.pnl > 0 ? 'text-green-600 bg-green-50 border-green-200' :
+                          day.pnl < 0 ? 'text-red-600 bg-red-50 border-red-200' :
+                          'text-yellow-600 bg-yellow-50 border-yellow-200'
+                        }`}>
+                          {day.pnl >= 0 ? '+' : ''}${day.pnl.toFixed(0)}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {day.tradeCount} trade{day.tradeCount !== 1 ? 's' : ''}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  
-                  {day.pnl !== 0 && (
-                    <div className="text-center text-xs font-medium">
-                      {formatCurrency(day.pnl)}
-                    </div>
-                  )}
-                  
-                  {day.hasJournal && (
-                    <div className="flex justify-center">
-                      <BookOpen className="h-3 w-3 opacity-60" />
-                    </div>
-                  )}
                 </div>
 
                 {/* Today indicator */}
