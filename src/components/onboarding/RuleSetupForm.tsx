@@ -19,7 +19,8 @@ import {
   Lightbulb,
   Edit,
   ChevronRight,
-  Zap
+  Zap,
+  X
 } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext'
 import { doc, updateDoc } from 'firebase/firestore'
@@ -58,6 +59,13 @@ export function RuleSetupForm() {
   const [error, setError] = useState('')
   const [customRulesText, setCustomRulesText] = useState('')
   
+  // New state for customizable suggested rules
+  const [selectedSuggestedRules, setSelectedSuggestedRules] = useState<boolean[]>(
+    new Array(SUGGESTED_RULES.length).fill(true)
+  )
+  const [editedSuggestedRules, setEditedSuggestedRules] = useState<string[]>([...SUGGESTED_RULES])
+  const [editingRuleIndex, setEditingRuleIndex] = useState<number | null>(null)
+  
   const totalSteps = 11
   const progress = (currentStep / totalSteps) * 100
 
@@ -91,10 +99,13 @@ export function RuleSetupForm() {
         .map(rule => rule.trim())
         .filter(rule => rule.length > 0)
 
-      // Combine suggested rules with custom rules if user wants suggestions
-      const allCustomRules = preferences.wantsSuggestedRules 
-        ? [...SUGGESTED_RULES, ...customRules]
-        : customRules
+      // Get selected and edited suggested rules if user wants suggestions
+      const finalSuggestedRules = preferences.wantsSuggestedRules 
+        ? editedSuggestedRules.filter((_, index) => selectedSuggestedRules[index])
+        : []
+
+      // Combine suggested rules with custom rules
+      const allCustomRules = [...finalSuggestedRules, ...customRules]
 
       const finalPreferences = {
         ...preferences,
@@ -123,6 +134,18 @@ export function RuleSetupForm() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const toggleSuggestedRule = (index: number) => {
+    const newSelected = [...selectedSuggestedRules]
+    newSelected[index] = !newSelected[index]
+    setSelectedSuggestedRules(newSelected)
+  }
+
+  const updateSuggestedRule = (index: number, newText: string) => {
+    const newRules = [...editedSuggestedRules]
+    newRules[index] = newText
+    setEditedSuggestedRules(newRules)
   }
 
   const nextStep = () => {
@@ -477,19 +500,70 @@ export function RuleSetupForm() {
               <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
                 <h4 className="font-medium text-blue-900 mb-3 flex items-center gap-2">
                   <Zap className="h-4 w-4" />
-                  Suggested Rules for You
+                  Customize Your Rules
                 </h4>
-                <div className="space-y-2">
-                  {SUGGESTED_RULES.map((rule, index) => (
-                    <div key={index} className="text-sm text-blue-800 flex items-start gap-2">
-                      <CheckCircle2 className="h-4 w-4 mt-0.5 text-blue-600 flex-shrink-0" />
-                      <span>{rule}</span>
+                <p className="text-sm text-blue-700 mb-4">
+                  Select which rules you want and edit them to fit your style
+                </p>
+                <div className="space-y-3">
+                  {editedSuggestedRules.map((rule, index) => (
+                    <div key={index} className="flex items-start gap-3 p-3 bg-white rounded-lg border border-blue-200">
+                      <input
+                        type="checkbox"
+                        checked={selectedSuggestedRules[index]}
+                        onChange={() => toggleSuggestedRule(index)}
+                        className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <div className="flex-1">
+                        {editingRuleIndex === index ? (
+                          <div className="space-y-2">
+                            <input
+                              type="text"
+                              value={rule}
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSuggestedRule(index, e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              onBlur={() => setEditingRuleIndex(null)}
+                              onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                                if (e.key === 'Enter') {
+                                  setEditingRuleIndex(null)
+                                }
+                              }}
+                              autoFocus
+                            />
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setEditingRuleIndex(null)}
+                                className="text-xs h-6"
+                              >
+                                Done
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div 
+                            className={`text-sm cursor-pointer hover:bg-blue-25 p-1 rounded ${
+                              selectedSuggestedRules[index] ? 'text-blue-800' : 'text-gray-500'
+                            }`}
+                            onClick={() => setEditingRuleIndex(index)}
+                          >
+                            {rule}
+                            <Edit className="inline h-3 w-3 ml-2 opacity-50" />
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
-                <p className="text-xs text-blue-700 mt-3 italic">
-                  These will be automatically added to your personal rules
-                </p>
+                <div className="mt-4 p-3 bg-blue-100 rounded border border-blue-300">
+                  <p className="text-xs text-blue-700">
+                    <strong>Tip:</strong> Click on any rule to edit it. Uncheck rules you don&apos;t want to include.
+                  </p>
+                  <p className="text-xs text-blue-600 mt-1">
+                    {selectedSuggestedRules.filter(Boolean).length} of {SUGGESTED_RULES.length} rules selected
+                  </p>
+                </div>
               </div>
             )}
           </div>
