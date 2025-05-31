@@ -16,21 +16,10 @@ export function XPProgressCard() {
     isLoading
   } = useTraderProgress();
 
-  // Debug logging to understand the data
-  console.log('XP Progress Debug:', { 
-    xp, 
-    level, 
-    xpToNextLevel, 
-    dailyXPLog,
-    totalDailyXP: Object.values(dailyXPLog).reduce((sum, val) => sum + (val || 0), 0)
-  });
-
   // Calculate today XP from daily log
   const todayXP = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
-    const todayValue = dailyXPLog[today] || 0;
-    console.log('Today XP calculation:', { today, todayValue, dailyXPLog });
-    return todayValue;
+    return dailyXPLog[today] || 0;
   }, [dailyXPLog]);
 
   const currentLevelTotalXP = level * 1000; // Each level requires 1000 XP
@@ -39,20 +28,37 @@ export function XPProgressCard() {
 
   // Calculate recent activity (last 7 days) - fix date calculation
   const recentXP = useMemo(() => {
-    const last7Days = Array.from({ length: 7 }, (_, i) => {
-      const date = new Date();
+    const last7Days = [];
+    const today = new Date();
+    
+    // Generate last 7 days including today
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(today);
       date.setDate(date.getDate() - i);
-      return date.toISOString().split('T')[0];
-    });
+      last7Days.push(date.toISOString().split('T')[0]);
+    }
     
-    console.log('Recent XP calculation:', { 
-      last7Days, 
+    // Debug: Log the calculation details
+    const xpBreakdown = last7Days.map(date => ({
+      date,
+      xp: dailyXPLog[date] || 0
+    }));
+    
+    console.log('🔍 XP Debug:', {
+      totalXP: xp,
+      level,
+      xpToNextLevel,
+      currentLevelTotalXP,
+      currentLevelProgress,
+      progressPercentage,
+      last7Days,
       dailyXPLog,
-      xpPerDay: last7Days.map(date => ({ date, xp: dailyXPLog[date] || 0 }))
+      xpBreakdown,
+      totalRecentXP: xpBreakdown.reduce((sum, item) => sum + item.xp, 0)
     });
     
-    return last7Days.reduce((sum, date) => sum + (dailyXPLog[date] || 0), 0);
-  }, [dailyXPLog]);
+    return xpBreakdown.reduce((sum, item) => sum + item.xp, 0);
+  }, [dailyXPLog, xp, level, xpToNextLevel]);
 
   if (isLoading) {
     return (
