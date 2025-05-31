@@ -610,6 +610,70 @@ export function TradePaste() {
   }, [parsedTrade, journalText, addTrade])
 
   const formatPrice = (price: number) => `$${price.toFixed(2)}`
+  
+  // Helper function to calculate trading metrics
+  const calculateTradeMetrics = (trade: ContextTrade) => {
+    const metrics: {
+      riskRewardRatio?: number
+      riskAmount?: number
+      riskPercentage?: number
+      pointsGainedLost?: number
+      rMultiple?: number
+      returnOnRisk?: number
+      tradeDuration?: number
+      breakEvenPrice?: number
+      maxRisk?: number
+      maxReward?: number
+    } = {}
+    
+    // Calculate risk/reward if we have entry, exit, and a reasonable stop level
+    if (trade.entryPrice && trade.exitPrice) {
+      const pointsGainedLost = trade.type === 'long' 
+        ? trade.exitPrice - trade.entryPrice
+        : trade.entryPrice - trade.exitPrice
+      metrics.pointsGainedLost = pointsGainedLost
+      
+      // Estimate stop loss at 2% from entry if not provided
+      const estimatedStopDistance = trade.entryPrice * 0.02
+      const actualStopDistance = estimatedStopDistance
+      
+      // Calculate risk amount (assuming standard position sizing)
+      const riskPerPoint = (trade.pnl && pointsGainedLost !== 0) 
+        ? Math.abs(trade.pnl / pointsGainedLost)
+        : 25 // Default for futures
+      
+      metrics.riskAmount = actualStopDistance * riskPerPoint * trade.quantity
+      metrics.maxRisk = metrics.riskAmount
+      
+      // R-Multiple calculation
+      if (metrics.riskAmount && metrics.riskAmount > 0) {
+        metrics.rMultiple = (trade.pnl || 0) / metrics.riskAmount
+        metrics.returnOnRisk = ((trade.pnl || 0) / metrics.riskAmount) * 100
+      }
+      
+      // Risk percentage (assuming $10k account - could be made configurable)
+      const accountSize = 10000
+      metrics.riskPercentage = metrics.riskAmount ? (metrics.riskAmount / accountSize) * 100 : 0
+      
+      // Calculate max reward potential
+      const rewardDistance = Math.abs(pointsGainedLost)
+      metrics.maxReward = rewardDistance * riskPerPoint * trade.quantity
+      
+      // Risk/Reward ratio
+      if (metrics.riskAmount && metrics.maxReward) {
+        metrics.riskRewardRatio = metrics.maxReward / metrics.riskAmount
+      }
+    }
+    
+    // Trade duration calculation
+    if (trade.entryDate && trade.exitDate) {
+      const entryTime = new Date(trade.entryDate).getTime()
+      const exitTime = new Date(trade.exitDate).getTime()
+      metrics.tradeDuration = Math.round((exitTime - entryTime) / (1000 * 60 * 60 * 24)) // Days
+    }
+    
+    return metrics
+  }
 
   return (
     <div className="space-y-6">
@@ -1336,7 +1400,7 @@ export function TradePaste() {
               ) : (
                 /* View Mode */
                 <>
-                  {/* Trade Details */}
+                  {/* Basic Trade Details */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
                       <label className="text-sm font-medium text-muted-foreground">Entry Price</label>
@@ -1362,27 +1426,142 @@ export function TradePaste() {
                     </div>
                   </div>
                   
-                  {/* Additional Info Row */}
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Status</label>
-                      <div className="text-sm">
-                        <Badge variant={selectedTrade.status === 'open' ? 'default' : 'secondary'}>
-                          {selectedTrade.status === 'open' ? 'Open' : 'Closed'}
-                        </Badge>
-                      </div>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Entry Date</label>
-                      <div className="text-sm font-medium">{selectedTrade.entryDate}</div>
-                    </div>
-                    {selectedTrade.exitDate && (
-                      <div>
-                        <label className="text-sm font-medium text-muted-foreground">Exit Date</label>
-                        <div className="text-sm font-medium">{selectedTrade.exitDate}</div>
-                      </div>
-                    )}
-                  </div>
+                  {/* Trading Metrics Section */}
+                  {(() => {
+                    const metrics = calculateTradeMetrics(selectedTrade)
+                    return (
+                      <>
+                        {/* Risk Management Metrics */}
+                        <div className="bg-muted/30 rounded-lg p-4 space-y-4">
+                          <h4 className="font-semibold text-base flex items-center gap-2">
+                            <Target className="h-4 w-4 text-orange-500" />
+                            Risk Management
+                          </h4>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {metrics.riskAmount && (
+                              <div>
+                                <label className="text-sm font-medium text-muted-foreground">Risk Amount</label>
+                                <div className="text-base font-semibold text-orange-600">
+                                  ${metrics.riskAmount.toFixed(2)}
+                                </div>
+                              </div>
+                            )}
+                            {metrics.riskPercentage && (
+                              <div>
+                                <label className="text-sm font-medium text-muted-foreground">Risk %</label>
+                                <div className="text-base font-semibold text-orange-600">
+                                  {metrics.riskPercentage.toFixed(2)}%
+                                </div>
+                              </div>
+                            )}
+                            {metrics.riskRewardRatio && (
+                              <div>
+                                <label className="text-sm font-medium text-muted-foreground">Risk:Reward</label>
+                                <div className="text-base font-semibold text-blue-600">
+                                  1:{metrics.riskRewardRatio.toFixed(2)}
+                                </div>
+                              </div>
+                            )}
+                            {metrics.rMultiple && (
+                              <div>
+                                <label className="text-sm font-medium text-muted-foreground">R-Multiple</label>
+                                <div className={`text-base font-semibold ${metrics.rMultiple >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                  {metrics.rMultiple >= 0 ? '+' : ''}{metrics.rMultiple.toFixed(2)}R
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Performance Metrics */}
+                        <div className="bg-muted/30 rounded-lg p-4 space-y-4">
+                          <h4 className="font-semibold text-base flex items-center gap-2">
+                            <TrendingUp className="h-4 w-4 text-green-500" />
+                            Performance Metrics
+                          </h4>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {metrics.pointsGainedLost !== undefined && (
+                              <div>
+                                <label className="text-sm font-medium text-muted-foreground">Points Moved</label>
+                                <div className={`text-base font-semibold ${metrics.pointsGainedLost >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                  {metrics.pointsGainedLost >= 0 ? '+' : ''}{metrics.pointsGainedLost.toFixed(2)}
+                                </div>
+                              </div>
+                            )}
+                            {metrics.returnOnRisk && (
+                              <div>
+                                <label className="text-sm font-medium text-muted-foreground">Return on Risk</label>
+                                <div className={`text-base font-semibold ${metrics.returnOnRisk >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                  {metrics.returnOnRisk >= 0 ? '+' : ''}{metrics.returnOnRisk.toFixed(1)}%
+                                </div>
+                              </div>
+                            )}
+                            {metrics.tradeDuration !== undefined && (
+                              <div>
+                                <label className="text-sm font-medium text-muted-foreground">Duration</label>
+                                <div className="text-base font-semibold text-blue-600">
+                                  {metrics.tradeDuration === 0 ? 'Same day' : 
+                                   metrics.tradeDuration === 1 ? '1 day' : 
+                                   `${metrics.tradeDuration} days`}
+                                </div>
+                              </div>
+                            )}
+                            {selectedTrade.strategy && (
+                              <div>
+                                <label className="text-sm font-medium text-muted-foreground">Strategy</label>
+                                <div className="text-base font-semibold text-purple-600">
+                                  {selectedTrade.strategy}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Quick Stats */}
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-100">
+                          <div className="text-center">
+                            <div className="text-xs text-muted-foreground mb-1">Trade Outcome</div>
+                            <div className="flex items-center justify-center gap-1">
+                              {selectedTrade.pnl === undefined ? (
+                                <Badge variant="outline" className="bg-blue-50 border-blue-200">
+                                  <span className="text-blue-700">Open Position</span>
+                                </Badge>
+                              ) : selectedTrade.pnl > 0 ? (
+                                <Badge variant="default" className="bg-green-100 text-green-800 border-green-200">
+                                  <TrendingUp className="h-3 w-3 mr-1" />
+                                  Winner
+                                </Badge>
+                              ) : selectedTrade.pnl < 0 ? (
+                                <Badge variant="destructive" className="bg-red-100 text-red-800 border-red-200">
+                                  <TrendingDown className="h-3 w-3 mr-1" />
+                                  Loser
+                                </Badge>
+                              ) : (
+                                <Badge variant="secondary">
+                                  Breakeven
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="text-center">
+                            <div className="text-xs text-muted-foreground mb-1">Status</div>
+                            <Badge variant={selectedTrade.status === 'open' ? 'default' : 'secondary'}>
+                              {selectedTrade.status === 'open' ? 'Open' : 'Closed'}
+                            </Badge>
+                          </div>
+                          
+                          <div className="text-center">
+                            <div className="text-xs text-muted-foreground mb-1">Entry Date</div>
+                            <div className="text-sm font-medium">{selectedTrade.entryDate}</div>
+                            {selectedTrade.exitDate && (
+                              <div className="text-xs text-muted-foreground">Exit: {selectedTrade.exitDate}</div>
+                            )}
+                          </div>
+                        </div>
+                      </>
+                    )
+                  })()}
                 </>
               )}
               
