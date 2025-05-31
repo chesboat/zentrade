@@ -31,7 +31,6 @@ interface EnhancedCalendarModalProps {
   activities: Activity[]
   onClose: () => void
   onTradeClick: (trade: Trade) => void
-  onDataUpdate: () => void // Generic callback for any data updates
 }
 
 const ActivityTypeConfig = {
@@ -60,8 +59,7 @@ export function EnhancedCalendarModal({
   trades, 
   activities, 
   onClose, 
-  onTradeClick,
-  onDataUpdate 
+  onTradeClick
 }: EnhancedCalendarModalProps) {
   const { user } = useAuth()
   const { deleteTrade } = useTrades()
@@ -100,7 +98,7 @@ export function EnhancedCalendarModal({
     
     if (confirm('Are you sure you want to delete this activity?')) {
       try {
-        await deleteActivity(activityId, user.uid)
+        await deleteActivity(activityId)
         // Note: Data will refresh automatically via useTraderProgress hook
       } catch (error) {
         console.error('Error deleting activity:', error)

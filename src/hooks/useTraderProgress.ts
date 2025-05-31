@@ -4,7 +4,6 @@ import { useTrades } from '@/contexts/TradesContext'
 import { 
   updateUserProgress, 
   getMotivationalMessage,
-  getUserActivities,
   Activity 
 } from '@/services/xpService'
 import { doc, getDoc, collection, query, where, orderBy, onSnapshot } from 'firebase/firestore'

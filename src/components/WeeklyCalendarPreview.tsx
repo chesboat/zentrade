@@ -496,7 +496,7 @@ function TradeDetailModal({ trade, onClose, onTradeUpdate }: {
 
 export function WeeklyCalendarPreview() {
   const { trades } = useTrades();
-  const { activities, refreshProgress } = useTraderProgress();
+  const { activities } = useTraderProgress();
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTradeDetail, setSelectedTradeDetail] = useState<Trade | null>(null);
 
@@ -572,11 +572,6 @@ export function WeeklyCalendarPreview() {
       calendarSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
-
-  const handleDataUpdate = async () => {
-    // Note: Data updates are now handled automatically by useTraderProgress hook
-    // This function is kept for interface compatibility but does nothing
-  }
 
   const selectedDateData = selectedDate 
     ? weekData.find(day => day.date === selectedDate.toISOString().split('T')[0])
@@ -693,7 +688,6 @@ export function WeeklyCalendarPreview() {
             setSelectedTradeDetail(trade)
             setSelectedDate(null) // Close calendar modal when trade detail opens
           }}
-          onDataUpdate={handleDataUpdate}
         />
       )}
 

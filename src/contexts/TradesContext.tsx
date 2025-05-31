@@ -17,7 +17,6 @@ import {
   Timestamp
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
-import { updateUserProgress, getUserActivities } from '@/services/xpService'
 
 interface TradesContextType {
   trades: Trade[]

@@ -413,7 +413,7 @@ export const updateActivity = async (
 }
 
 // Delete activity from the activities collection
-export const deleteActivity = async (activityId: string, userId: string): Promise<void> => {
+export const deleteActivity = async (activityId: string): Promise<void> => {
   try {
     // Delete the activity
     await deleteDoc(doc(db, 'activities', activityId))

@@ -663,7 +663,7 @@ export function CalendarView() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [selectedTradeDetail, setSelectedTradeDetail] = useState<Trade | null>(null)
   const { trades } = useTrades()
-  const { activities, refreshProgress } = useTraderProgress()
+  const { activities } = useTraderProgress()
 
   // Process trades and activities into day data
   const dayDataMap = useMemo(() => {
@@ -753,11 +753,6 @@ export function CalendarView() {
     ? dayDataMap.get(selectedDate.toISOString().split('T')[0])?.activities || []
     : []
 
-  const handleDataUpdate = async () => {
-    // Note: Data updates are now handled automatically by useTraderProgress hook
-    // This function is kept for interface compatibility but does nothing
-  }
-
   return (
     <div className="space-y-6">
       <Card>
@@ -813,7 +808,6 @@ export function CalendarView() {
             setSelectedTradeDetail(trade)
             setSelectedDate(null) // Close calendar modal when trade detail opens
           }}
-          onDataUpdate={handleDataUpdate}
         />
       )}
 

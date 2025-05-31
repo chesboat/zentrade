@@ -57,7 +57,7 @@ const ActivityTypeConfig = {
 
 export function RecentActivity() {
   const { trades, deleteTrade } = useTrades()
-  const { activities, refreshProgress } = useTraderProgress()
+  const { activities } = useTraderProgress()
   const { user } = useAuth()
   const [editingActivity, setEditingActivity] = useState<string | null>(null)
   const [editedNotes, setEditedNotes] = useState('')
@@ -108,7 +108,7 @@ export function RecentActivity() {
     
     if (confirm('Are you sure you want to delete this activity?')) {
       try {
-        await deleteActivity(activityId, user.uid)
+        await deleteActivity(activityId)
         // Note: Data will refresh automatically via useTraderProgress hook
       } catch (error) {
         console.error('Error deleting activity:', error)

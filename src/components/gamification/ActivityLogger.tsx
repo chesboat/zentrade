@@ -14,7 +14,6 @@ import {
 } from "lucide-react"
 import { addActivity, ActivityType, XP_RULES } from '@/services/xpService'
 import { useAuth } from '@/contexts/AuthContext'
-import { useTraderProgress } from '@/hooks/useTraderProgress'
 
 interface ActivityOption {
   type: ActivityType
@@ -50,7 +49,6 @@ const ACTIVITY_OPTIONS: ActivityOption[] = [
 
 export function ActivityLogger() {
   const { user } = useAuth()
-  const { refreshProgress } = useTraderProgress()
   const [selectedActivity, setSelectedActivity] = useState<ActivityType | null>(null)
   const [notes, setNotes] = useState('')
   const [isLoading, setIsLoading] = useState(false)
