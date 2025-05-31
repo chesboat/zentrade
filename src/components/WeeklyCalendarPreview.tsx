@@ -4,32 +4,17 @@ import React, { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { 
   Calendar, 
   TrendingUp, 
   TrendingDown, 
-  ArrowUp, 
-  ArrowDown, 
   BookOpen,
-  BarChart3,
-  RefreshCw,
-  FileText,
-  Zap,
-  Edit,
-  Save,
-  X,
   ChevronRight,
   Target,
   Copy
 } from "lucide-react";
 import { useTrades } from "@/contexts/TradesContext";
-import { useTraderProgress } from "@/hooks/useTraderProgress";
-import { updateDoc, doc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { useAuth } from '@/contexts/AuthContext';
 import { Trade } from "@/mockData/trades";
-import { Activity, ActivityType } from "@/services/xpService";
 import Image from "next/image";
 
 interface DayStats {
