@@ -18,9 +18,15 @@ export function TodaySummaryCard() {
     streak, 
     longestStreak,
     motivationalMessage,
-    todayXP,
+    dailyXPLog,
     isLoading
   } = useTraderProgress();
+  
+  // Calculate today's XP from daily log
+  const todayXP = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    return dailyXPLog[today] || 0;
+  }, [dailyXPLog]);
   
   const todayStats = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
