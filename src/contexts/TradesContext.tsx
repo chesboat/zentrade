@@ -175,6 +175,17 @@ export function TradesProvider({ children }: { children: ReactNode }) {
 
     try {
       await deleteDoc(doc(db, 'trades', id))
+
+      // Update user XP after deleting trade
+      try {
+        const userActivities = await getUserActivities(user.uid)
+        // Filter out the deleted trade for XP calculation
+        const updatedTrades = trades.filter(trade => trade.id !== id)
+        await updateUserProgress(user.uid, updatedTrades, userActivities)
+      } catch (xpError) {
+        console.error('Error updating XP after deleting trade:', xpError)
+        // Don't throw here - the trade was successfully deleted
+      }
     } catch (error) {
       console.error('Error deleting trade:', error)
       throw error

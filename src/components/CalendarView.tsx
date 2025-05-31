@@ -10,6 +10,7 @@ import { useTrades } from "@/contexts/TradesContext"
 import { useTraderProgress } from "@/hooks/useTraderProgress"
 import { Activity } from "@/services/xpService"
 import Image from "next/image"
+import { EnhancedCalendarModal } from "./EnhancedCalendarModal"
 
 interface DayData {
   date: Date
@@ -26,14 +27,6 @@ interface CalendarDayCellProps {
   isCurrentMonth: boolean
   isToday: boolean
   onClick: () => void
-}
-
-interface CalendarSummaryModalProps {
-  date: Date | null
-  trades: Trade[]
-  activities: Activity[]
-  onClose: () => void
-  onTradeClick: (trade: Trade) => void
 }
 
 function CalendarDayCell({ date, dayData, isCurrentMonth, isToday, onClick }: CalendarDayCellProps) {
@@ -114,227 +107,6 @@ function CalendarDayCell({ date, dayData, isCurrentMonth, isToday, onClick }: Ca
           )}
         </div>
       </div>
-    </div>
-  )
-}
-
-function CalendarSummaryModal({ date, trades, activities, onClose, onTradeClick }: CalendarSummaryModalProps) {
-  if (!date) return null
-
-  const totalPnL = trades.reduce((sum, trade) => sum + (trade.pnl || 0), 0)
-  const totalXP = activities.reduce((sum, activity) => {
-    const activityXP = { backtest: 40, reengineer: 25, postTradeReview: 20 }
-    return sum + (activityXP[activity.type] || 0)
-  }, 0)
-
-  const activityConfig = {
-    backtest: {
-      icon: <BarChart3 className="h-4 w-4" />,
-      label: "Backtest Session",
-      color: "bg-blue-50 border-blue-200 text-blue-700",
-      xp: 40
-    },
-    reengineer: {
-      icon: <RefreshCw className="h-4 w-4" />,
-      label: "Re-engineered Trade", 
-      color: "bg-purple-50 border-purple-200 text-purple-700",
-      xp: 25
-    },
-    postTradeReview: {
-      icon: <FileText className="h-4 w-4" />,
-      label: "Post-Trade Analysis",
-      color: "bg-green-50 border-green-200 text-green-700", 
-      xp: 20
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-3xl max-h-[85vh] overflow-y-auto">
-        <CardHeader className="pb-4">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              {date.toLocaleDateString('en-US', { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-              })}
-            </CardTitle>
-            <Button variant="ghost" size="sm" onClick={onClose}>
-              ✕
-            </Button>
-          </div>
-          
-          {/* Summary Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold">{trades.length}</div>
-              <div className="text-sm text-muted-foreground">Trades</div>
-            </div>
-            <div className="text-center">
-              <div className={`text-2xl font-bold ${
-                totalPnL > 0 ? 'text-green-600' : totalPnL < 0 ? 'text-red-600' : 'text-muted-foreground'
-              }`}>
-                {totalPnL >= 0 ? '+' : ''}${totalPnL.toFixed(0)}
-              </div>
-              <div className="text-sm text-muted-foreground">P&L</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold">{activities.length}</div>
-              <div className="text-sm text-muted-foreground">Activities</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600 flex items-center justify-center gap-1">
-                <Zap className="h-5 w-5" />
-                +{totalXP}
-              </div>
-              <div className="text-sm text-muted-foreground">XP Earned</div>
-            </div>
-          </div>
-        </CardHeader>
-        
-        <CardContent className="space-y-6">
-          {/* Activities Section */}
-          {activities.length > 0 && (
-            <div>
-              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                <Zap className="h-5 w-5" />
-                Learning Activities ({activities.length})
-              </h3>
-              <div className="space-y-3">
-                {activities.map((activity, index) => {
-                  const config = activityConfig[activity.type]
-                  
-                  return (
-                    <div 
-                      key={index} 
-                      className="border rounded-lg p-4"
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          <div className={`
-                            flex items-center justify-center w-10 h-10 rounded-full border
-                            ${config.color}
-                          `}>
-                            {config.icon}
-                          </div>
-                          <div>
-                            <div className="font-medium">{config.label}</div>
-                            <Badge variant="outline" className="text-xs flex items-center gap-1 w-fit">
-                              <Zap className="h-3 w-3" />
-                              +{config.xp} XP
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="text-sm bg-muted/30 p-3 rounded">
-                        {activity.notes}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Trades Section */}
-          {trades.length > 0 && (
-            <div>
-              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                <TrendingUp className="h-5 w-5" />
-                Trades ({trades.length})
-              </h3>
-              <div className="space-y-3">
-                {trades.map((trade) => (
-                  <div 
-                    key={trade.id} 
-                    className="border rounded-lg p-3 cursor-pointer hover:bg-muted/50 transition-colors"
-                    onClick={() => onTradeClick(trade)}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary">{trade.symbol}</Badge>
-                        <Badge variant={trade.type === 'long' ? 'default' : 'destructive'}>
-                          {trade.type === 'long' ? (
-                            <TrendingUp className="h-3 w-3 mr-1" />
-                          ) : (
-                            <TrendingDown className="h-3 w-3 mr-1" />
-                          )}
-                          {trade.type.toUpperCase()}
-                        </Badge>
-                        <span className="text-sm font-medium">
-                          ${trade.entryPrice.toFixed(2)}
-                          {trade.exitPrice && ` → $${trade.exitPrice.toFixed(2)}`}
-                        </span>
-                      </div>
-                      {trade.pnl && (
-                        <div className={`font-medium ${
-                          trade.pnl > 0 ? 'text-green-600' : trade.pnl < 0 ? 'text-red-600' : 'text-yellow-600'
-                        }`}>
-                          {trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="text-sm text-muted-foreground mb-2">
-                      {trade.quantity} contracts • {trade.strategy}
-                      {trade.screenshot && <span className="ml-2">📸</span>}
-                    </div>
-                    
-                    {trade.notes && (
-                      <div className="text-sm bg-muted/30 p-2 rounded border-l-2 border-blue-500 relative">
-                        <div className="flex items-start gap-1">
-                          <span>📒</span>
-                          <div className="flex-1 min-w-0">
-                            {trade.notes.length > 100 ? (
-                              <div className="relative">
-                                <div 
-                                  className="overflow-hidden relative"
-                                  style={{
-                                    maxHeight: '2.5rem',
-                                    WebkitMask: 'linear-gradient(180deg, black 0%, black 60%, transparent 100%)',
-                                    mask: 'linear-gradient(180deg, black 0%, black 60%, transparent 100%)'
-                                  }}
-                                >
-                                  {trade.notes}
-                                  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-muted/30 pointer-events-none" 
-                                       style={{ top: '60%' }} />
-                                </div>
-                                <div className="absolute bottom-0 right-0 text-muted-foreground text-xs pointer-events-none">
-                                  ⋯
-                                </div>
-                              </div>
-                            ) : (
-                              <span>{trade.notes}</span>
-                            )}
-                          </div>
-                        </div>
-                        {trade.notes.length > 100 && (
-                          <div className="text-xs text-muted-foreground mt-1 italic">
-                            Click trade for full journal entry
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Empty State */}
-          {trades.length === 0 && activities.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No activity on this day</p>
-              <p className="text-sm">Start trading or log some analysis to see activity here</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   )
 }
@@ -891,7 +663,7 @@ export function CalendarView() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [selectedTradeDetail, setSelectedTradeDetail] = useState<Trade | null>(null)
   const { trades } = useTrades()
-  const { activities } = useTraderProgress()
+  const { activities, refreshProgress } = useTraderProgress()
 
   // Process trades and activities into day data
   const dayDataMap = useMemo(() => {
@@ -981,6 +753,11 @@ export function CalendarView() {
     ? dayDataMap.get(selectedDate.toISOString().split('T')[0])?.activities || []
     : []
 
+  const handleDataUpdate = async () => {
+    // Refresh progress data to get updated activities and user progress
+    await refreshProgress()
+  }
+
   return (
     <div className="space-y-6">
       <Card>
@@ -1027,7 +804,7 @@ export function CalendarView() {
 
       {/* Modal */}
       {selectedDate && (
-        <CalendarSummaryModal
+        <EnhancedCalendarModal
           date={selectedDate}
           trades={selectedDateTrades}
           activities={selectedDateActivities}
@@ -1036,6 +813,7 @@ export function CalendarView() {
             setSelectedTradeDetail(trade)
             setSelectedDate(null) // Close calendar modal when trade detail opens
           }}
+          onDataUpdate={handleDataUpdate}
         />
       )}
 
