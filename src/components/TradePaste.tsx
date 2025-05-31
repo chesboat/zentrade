@@ -984,6 +984,24 @@ export function TradePaste() {
                 </div>
               </div>
 
+              {/* Risk/Reward Ratio */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">Risk/Reward</label>
+                <div className="flex items-center gap-2">
+                  {parsedTrade.riskRewardRatio ? (
+                    <div className="flex items-center gap-1 text-base font-medium text-blue-600">
+                      <Target className="h-3 w-3" />
+                      {parsedTrade.riskRewardRatio.toFixed(2)}R
+                    </div>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">Not detected</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Second Row - Quantity */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               {/* Quantity */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-muted-foreground">Quantity</label>
@@ -1478,7 +1496,7 @@ export function TradePaste() {
                               <div>
                                 <label className="text-sm font-medium text-muted-foreground">Risk:Reward</label>
                                 <div className="text-base font-semibold text-blue-600">
-                                  1:{metrics.riskRewardRatio.toFixed(2)}
+                                  {metrics.riskRewardRatio.toFixed(2)}R
                                 </div>
                               </div>
                             )}
