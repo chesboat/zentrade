@@ -14,6 +14,7 @@ export interface Trade {
   strategy: string;
   screenshot?: string; // base64 image data
   riskAmount?: number; // original risk amount from TradingView
+  riskRewardRatio?: number; // original R/R ratio from TradingView stop/target levels
 }
 
 // Empty array for production - users will add their own trades

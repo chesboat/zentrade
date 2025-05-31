@@ -27,6 +27,7 @@ interface ParsedTrade {
   riskAdjustment?: 'moderate_risk' | 'lower_risk' | 'normal'
   screenshot?: string
   journalEntry?: string
+  riskRewardRatio?: number // R/R ratio from TradingView stop/target levels
 }
 
 export function TradePaste() {
@@ -145,6 +146,14 @@ export function TradePaste() {
               }
               console.log('🛡️ Stop Loss:', result.stopLoss)
               console.log('🎯 Take Profit:', result.takeProfit)
+              
+              // Calculate Risk/Reward ratio from actual TradingView levels
+              if (result.stopLoss && result.takeProfit && result.entryPrice) {
+                const riskPoints = Math.abs(result.stopLoss - result.entryPrice)
+                const rewardPoints = Math.abs(result.takeProfit - result.entryPrice)
+                result.riskRewardRatio = rewardPoints / riskPoints
+                console.log('📊 Risk/Reward Ratio:', result.riskRewardRatio)
+              }
             }
           } else if (uniquePrices.length === 1) {
             // Single price level
@@ -590,7 +599,8 @@ export function TradePaste() {
       notes: journalText || undefined,
       strategy: 'TradingView Import',
       screenshot: parsedTrade.screenshot,
-      riskAmount: parsedTrade.actualRisk // Store the original risk amount
+      riskAmount: parsedTrade.actualRisk, // Store the original risk amount
+      riskRewardRatio: parsedTrade.riskRewardRatio // Store the original R/R ratio
     }
     
     addTrade(newTrade)
@@ -639,6 +649,11 @@ export function TradePaste() {
       metrics.riskAmount = estimatedStopDistance * riskPerPoint * trade.quantity
     }
     
+    // Use stored Risk/Reward ratio if available (from TradingView), otherwise calculate if possible
+    if (trade.riskRewardRatio) {
+      metrics.riskRewardRatio = trade.riskRewardRatio
+    }
+    
     // Calculate risk/reward and other metrics if we have the necessary data
     if (trade.entryPrice && trade.exitPrice) {
       const pointsGainedLost = trade.type === 'long' 
@@ -664,8 +679,8 @@ export function TradePaste() {
         metrics.maxReward = Math.abs(pointsGainedLost) * riskPerPoint * trade.quantity
       }
       
-      // Risk/Reward ratio
-      if (metrics.riskAmount && metrics.maxReward) {
+      // Only calculate Risk/Reward ratio if not already stored and we have the data
+      if (!metrics.riskRewardRatio && metrics.riskAmount && metrics.maxReward) {
         metrics.riskRewardRatio = metrics.maxReward / metrics.riskAmount
       }
     }
