@@ -83,8 +83,8 @@ export function TradesProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      // Clean the trade data more thoroughly
-      const cleanedTrade: any = {}
+      // Clean the trade data more thoroughly - properly typed
+      const cleanedTrade: Record<string, unknown> = {}
       
       // Only add defined values
       if (newTrade.symbol) cleanedTrade.symbol = newTrade.symbol
@@ -130,7 +130,7 @@ export function TradesProvider({ children }: { children: ReactNode }) {
     try {
       // Clean the updates to remove undefined values
       const cleanedUpdates = Object.fromEntries(
-        Object.entries(updates).filter(([_, value]) => value !== undefined)
+        Object.entries(updates).filter(([, value]) => value !== undefined)
       )
 
       const tradeRef = doc(db, 'trades', id)
