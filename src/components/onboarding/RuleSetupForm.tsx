@@ -4,7 +4,6 @@ import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { Progress } from "@/components/ui/progress"
 import { 
@@ -223,7 +222,7 @@ export function RuleSetupForm() {
                       ? 'border-red-500 bg-red-50' 
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
-                  onClick={() => setPreferences({...preferences, behaviorAfterLoss: option.value as any})}
+                  onClick={() => setPreferences({...preferences, behaviorAfterLoss: option.value as RulePreferences['behaviorAfterLoss']})}
                 >
                   <div className="flex items-center gap-3">
                     <div className={`w-4 h-4 rounded-full border-2 ${
@@ -251,7 +250,7 @@ export function RuleSetupForm() {
             <div className="space-y-3">
               <select 
                 value={preferences.session}
-                onChange={(e) => setPreferences({...preferences, session: e.target.value as any})}
+                onChange={(e) => setPreferences({...preferences, session: e.target.value as RulePreferences['session']})}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
               >
                 <option value="london">London Session (2:00-11:00 AM EST)</option>
@@ -352,7 +351,7 @@ export function RuleSetupForm() {
             <div className="space-y-3">
               <select 
                 value={preferences.journalReviewFrequency}
-                onChange={(e) => setPreferences({...preferences, journalReviewFrequency: e.target.value as any})}
+                onChange={(e) => setPreferences({...preferences, journalReviewFrequency: e.target.value as RulePreferences['journalReviewFrequency']})}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
               >
                 <option value="daily">Daily - Review every day</option>
@@ -422,7 +421,7 @@ export function RuleSetupForm() {
                       ? 'border-gray-500 bg-gray-50' 
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
-                  onClick={() => setPreferences({...preferences, followUpStyle: option.value as any})}
+                  onClick={() => setPreferences({...preferences, followUpStyle: option.value as RulePreferences['followUpStyle']})}
                 >
                   <div className="flex items-center gap-3">
                     <div className={`w-4 h-4 rounded-full border-2 ${

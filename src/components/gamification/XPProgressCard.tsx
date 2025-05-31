@@ -63,7 +63,7 @@ export function XPProgressCard() {
     });
     
     return xpBreakdown.reduce((sum, item) => sum + item.xp, 0);
-  }, [dailyXPLog, xp, level, xpToNextLevel]);
+  }, [dailyXPLog, xp, level, xpToNextLevel, currentLevelTotalXP, currentLevelProgress, progressPercentage]);
 
   if (isLoading) {
     return (
