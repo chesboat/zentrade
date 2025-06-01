@@ -26,6 +26,7 @@ import { isUserAdmin, getUserAnalytics, getAuditLogs } from '@/services/adminSer
 import { XPSettingsManager } from '@/components/admin/XPSettingsManager'
 // import { QuestionnaireManager } from '@/components/admin/QuestionnaireManager'
 import { AdminAuditLog } from '@/types/admin'
+import { db } from '@/lib/firebase'
 
 export default function AdminDashboard() {
   const { user } = useAuth()
@@ -59,6 +60,21 @@ export default function AdminDashboard() {
 
       try {
         console.log('🔍 Testing Firebase connection...')
+        
+        // First test basic Firebase connectivity
+        console.log('🔍 Testing basic Firestore read...')
+        const { doc, getDoc } = await import('firebase/firestore')
+        const testDoc = doc(db, 'test', 'connectivity')
+        
+        try {
+          await getDoc(testDoc)
+          console.log('✅ Basic Firestore connection works')
+        } catch (connectError) {
+          console.error('❌ Basic Firestore connection failed:', connectError)
+          throw new Error(`Firebase connectivity issue: ${(connectError as Error).message}`)
+        }
+        
+        console.log('🔍 Testing admin authentication...')
         const adminStatus = await isUserAdmin(user.uid)
         console.log('🔍 Admin status result:', adminStatus)
         

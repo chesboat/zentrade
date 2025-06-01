@@ -1,6 +1,6 @@
-import { initializeApp } from 'firebase/app'
+import { initializeApp, getApps } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
-import { getFirestore, enableNetwork } from 'firebase/firestore'
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore'
 import { getAnalytics, isSupported } from 'firebase/analytics'
 
 // Get environment variables - Next.js automatically makes NEXT_PUBLIC_ vars available on client
@@ -15,7 +15,7 @@ const firebaseConfig = {
 }
 
 // Debug logging
-console.log('Firebase config values:', {
+console.log('🔧 Firebase config validation:', {
   apiKey: firebaseConfig.apiKey ? `${firebaseConfig.apiKey.substring(0, 10)}...` : 'MISSING',
   authDomain: firebaseConfig.authDomain || 'MISSING',
   projectId: firebaseConfig.projectId || 'MISSING',
@@ -25,18 +25,43 @@ console.log('Firebase config values:', {
   measurementId: firebaseConfig.measurementId || 'MISSING'
 })
 
-// Initialize Firebase app
-const app = initializeApp(firebaseConfig)
+// Initialize Firebase app (avoid multiple initialization)
+let app;
+if (getApps().length === 0) {
+  console.log('🔧 Initializing new Firebase app')
+  app = initializeApp(firebaseConfig)
+} else {
+  console.log('🔧 Using existing Firebase app')
+  app = getApps()[0]
+}
 
 // Initialize Auth
+console.log('🔧 Initializing Firebase Auth')
 export const auth = getAuth(app)
 
-// Initialize Firestore with basic configuration (compatible with Vercel)
+// Initialize Firestore with basic configuration
+console.log('🔧 Initializing Firestore')
 export const db = getFirestore(app)
 
-// Enable network explicitly
+// Test Firestore connection
 if (typeof window !== 'undefined') {
-  enableNetwork(db).catch(console.error)
+  console.log('🔧 Testing Firestore connection...')
+  // Simple connection test
+  import('firebase/firestore').then(({ doc, getDoc }) => {
+    const testDoc = doc(db, 'test', 'connection')
+    getDoc(testDoc)
+      .then(() => {
+        console.log('✅ Firestore connection successful')
+      })
+      .catch((error) => {
+        console.error('❌ Firestore connection failed:', error)
+        console.error('❌ Error details:', {
+          code: error.code,
+          message: error.message,
+          details: error.details
+        })
+      })
+  })
 }
 
 // Initialize Analytics only in browser and if supported
