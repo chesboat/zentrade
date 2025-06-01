@@ -272,7 +272,7 @@ export const getUserAnalytics = async () => {
       // In a real implementation, you'd want to maintain user counts in Firestore
       
       // Get recent activity metrics
-      const now = new Date()
+      // const now = new Date()
       // const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
       
       // Sample analytics structure - you can enhance this based on your needs
