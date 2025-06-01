@@ -16,7 +16,8 @@ export function EndSessionButton({ variant = 'default', className = '' }: EndSes
   const [showModal, setShowModal] = useState(false)
   const { hasCheckedInToday, todaysXP } = useRuleAdherence()
 
-  const handleSuccess = (_xp: number, _message: string) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleSuccess = (xp: number, message: string) => {
     setShowModal(false)
     // No need to manage local feedback state since hasCheckedInToday will be true
     // and the component will show the completed state permanently
