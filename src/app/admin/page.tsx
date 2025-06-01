@@ -42,18 +42,26 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     const checkAdminAccess = async () => {
+      console.log('Admin page: Checking access, user:', user?.uid)
+      
       if (!user) {
+        console.log('Admin page: No user, redirecting to login')
         router.push('/login')
         return
       }
 
       try {
+        console.log('Admin page: Checking if user is admin:', user.uid)
         const adminStatus = await isUserAdmin(user.uid)
+        console.log('Admin page: Admin status result:', adminStatus)
+        
         if (!adminStatus) {
+          console.log('Admin page: User is not admin, redirecting to dashboard')
           router.push('/dashboard')
           return
         }
         
+        console.log('Admin page: User is admin, loading dashboard')
         setIsAdmin(true)
         
         // Load analytics and audit logs
@@ -64,6 +72,7 @@ export default function AdminDashboard() {
         
         setAnalytics(analyticsData)
         setAuditLogs(logs)
+        console.log('Admin page: Dashboard loaded successfully')
       } catch (error) {
         console.error('Error checking admin access:', error)
         router.push('/dashboard')
