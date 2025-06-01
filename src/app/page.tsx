@@ -222,7 +222,7 @@ function Dashboard() {
             <p className="text-sm text-blue-700 mt-2">
               Use this User ID to set up admin access in Firebase Console. 
               <br />
-              Go to Firestore → Create "admins" collection → Add document with this ID.
+              Go to Firestore → Create &quot;admins&quot; collection → Add document with this ID.
             </p>
           </CardContent>
         </Card>
