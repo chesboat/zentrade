@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, Shield, Trophy, Calendar, ChevronDown } from "lucide-react";
+import { DollarSign, Shield, Trophy, Calendar, ChevronDown, Copy } from "lucide-react";
 import { TradePaste } from "@/components/TradePaste";
 import { CalendarView } from "@/components/CalendarView";
 import { TodaySummaryCard } from "@/components/TodaySummaryCard";
@@ -19,6 +19,7 @@ import { useMemo, useState, useEffect, useRef } from "react";
 import { RulesManagement } from "@/components/rules/RulesManagement";
 import { EndSessionButton } from "@/components/rules/EndSessionButton";
 import { XPFeedbackBanner } from "@/components/gamification/XPFeedbackBanner";
+import { useAuth } from "@/contexts/AuthContext";
 
 type DateFilterOption = 'all' | 'thisWeek' | 'lastWeek' | 'thisMonth' | 'lastMonth' | 'custom';
 
@@ -99,6 +100,7 @@ function Dashboard() {
   const [showDateDropdown, setShowDateDropdown] = useState(false);
   const [customDateRange, setCustomDateRange] = useState({ start: '', end: '' });
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { user } = useAuth();
 
   // Handle click outside to close dropdown
   useEffect(() => {
@@ -194,6 +196,37 @@ function Dashboard() {
           Track your progress, build consistent habits, and grow as a trader.
         </p>
       </div>
+
+      {/* Temporary User ID Display for Admin Setup */}
+      {user && (
+        <Card className="bg-blue-50 border-blue-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-blue-800">
+              <Shield className="h-5 w-5" />
+              Your User ID (For Admin Setup)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2 p-3 bg-white border rounded">
+              <code className="flex-1 text-sm font-mono">{user.uid}</code>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => navigator.clipboard.writeText(user.uid)}
+                className="flex items-center gap-1"
+              >
+                <Copy className="h-3 w-3" />
+                Copy
+              </Button>
+            </div>
+            <p className="text-sm text-blue-700 mt-2">
+              Use this User ID to set up admin access in Firebase Console. 
+              <br />
+              Go to Firestore → Create "admins" collection → Add document with this ID.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* XP Progress Card */}
       <XPProgressCard />
