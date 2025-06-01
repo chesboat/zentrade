@@ -84,7 +84,7 @@ export default function AdminDashboard() {
         console.error('🔥 Error checking admin access:', error)
         console.error('🔥 Error details:', {
           message: (error as Error).message,
-          code: (error as any).code,
+          code: (error as { code?: string }).code,
           stack: (error as Error).stack
         })
         router.push('/dashboard')
