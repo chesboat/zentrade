@@ -19,7 +19,6 @@ import {
 import { useAuth } from '@/contexts/AuthContext'
 import { 
   getQuestionnaireTemplates,
-  createQuestionnaireTemplate,
   updateQuestionnaireTemplate,
   deleteQuestionnaireTemplate
 } from '@/services/adminService'

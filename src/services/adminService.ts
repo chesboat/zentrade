@@ -10,8 +10,7 @@ import {
   orderBy, 
   deleteDoc,
   serverTimestamp,
-  writeBatch,
-  Timestamp
+  writeBatch
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { 
@@ -306,8 +305,8 @@ export const logAdminAction = async (
   action: string,
   resource: string,
   resourceId: string,
-  oldValue?: any,
-  newValue?: any
+  oldValue?: unknown,
+  newValue?: unknown
 ): Promise<void> => {
   try {
     const logsRef = collection(db, 'adminAuditLogs')

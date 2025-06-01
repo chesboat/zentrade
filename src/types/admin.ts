@@ -96,8 +96,8 @@ export interface AdminAuditLog {
   action: string
   resource: string
   resourceId: string
-  oldValue?: any
-  newValue?: any
+  oldValue?: unknown
+  newValue?: unknown
   timestamp: Date
   ipAddress?: string
   userAgent?: string

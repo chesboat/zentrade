@@ -238,9 +238,9 @@ export function XPSettingsManager() {
       setError(null)
       
       // Extract only the XP values for update - create a new object with just the numeric values
-      const xpUpdates = {} as any
+      const xpUpdates: Record<string, number> = {}
       XP_CONFIG.forEach(config => {
-        xpUpdates[config.key] = settings[config.key]
+        xpUpdates[config.key] = settings[config.key] as number
       })
       
       await updateXPSettings(xpUpdates, user.uid)
