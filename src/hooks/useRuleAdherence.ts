@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import { doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore'
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { RulePreferences } from '@/utils/rulePreferences'
 
@@ -31,14 +31,7 @@ export function useRuleAdherence() {
 
   const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD format
 
-  useEffect(() => {
-    if (user) {
-      loadUserRules()
-      checkTodaysStatus()
-    }
-  }, [user])
-
-  const loadUserRules = async () => {
+  const loadUserRules = useCallback(async () => {
     if (!user) return
 
     try {
@@ -61,9 +54,9 @@ export function useRuleAdherence() {
     } catch (error) {
       console.error('Error loading user rules:', error)
     }
-  }
+  }, [user])
 
-  const checkTodaysStatus = async () => {
+  const checkTodaysStatus = useCallback(async () => {
     if (!user) return
 
     try {
@@ -77,7 +70,14 @@ export function useRuleAdherence() {
     } catch (error) {
       console.error('Error checking today\'s status:', error)
     }
-  }
+  }, [user, today])
+
+  useEffect(() => {
+    if (user) {
+      loadUserRules()
+      checkTodaysStatus()
+    }
+  }, [user, loadUserRules, checkTodaysStatus])
 
   const markRuleFollowed = (ruleIndex: number, followed: boolean) => {
     setCheckInData(prev => 

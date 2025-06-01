@@ -114,7 +114,7 @@ export function RuleCheckInModal({ isOpen, onClose, onSuccess }: RuleCheckInModa
               End Session Check-In
             </h2>
             <p className="text-gray-600 mt-1">
-              Let's review how well you followed your trading rules today. Your honesty helps build better habits.
+              Let&apos;s review how well you followed your trading rules today. Your honesty helps build better habits.
             </p>
           </div>
           <Button 
@@ -201,7 +201,7 @@ export function RuleCheckInModal({ isOpen, onClose, onSuccess }: RuleCheckInModa
                 onClick={() => setHonestyConfirmed(false)}
                 className={honestyConfirmed === false ? 'bg-gray-600 hover:bg-gray-700' : ''}
               >
-                No, I wasn't completely honest
+                No, I wasn&apos;t completely honest
               </Button>
             </div>
           </div>

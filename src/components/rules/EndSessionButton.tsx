@@ -47,7 +47,7 @@ export function EndSessionButton({ variant = 'default', className = '' }: EndSes
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <CheckCircle className="h-5 w-5 text-green-600" />
-                <span className="font-medium text-green-800">Today's session completed!</span>
+                <span className="font-medium text-green-800">Today&apos;s session completed!</span>
               </div>
               <Badge variant="secondary" className="bg-green-100 text-green-700">
                 +{todaysXP} XP earned
