@@ -128,6 +128,10 @@ export default function AdminDashboard() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
           <p className="text-gray-600">Manage XP settings, questionnaires, and system configuration</p>
+          {/* DEBUG: Version indicator */}
+          <div className="text-xs text-red-500 font-mono mt-1">
+            🚀 DEBUG VERSION v3 - {new Date().toISOString()}
+          </div>
         </div>
         <Badge variant="secondary" className="bg-blue-100 text-blue-800">
           <Shield className="h-3 w-3 mr-1" />
