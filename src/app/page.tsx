@@ -17,6 +17,8 @@ import { useTrades } from "@/contexts/TradesContext";
 import { calculateTradingStats } from "@/utils/tradingStats";
 import { useMemo, useState, useEffect, useRef } from "react";
 import { RulesManagement } from "@/components/rules/RulesManagement";
+import { EndSessionButton } from "@/components/rules/EndSessionButton";
+import { XPFeedbackBanner } from "@/components/gamification/XPFeedbackBanner";
 
 type DateFilterOption = 'all' | 'thisWeek' | 'lastWeek' | 'thisMonth' | 'lastMonth' | 'custom';
 
@@ -196,8 +198,14 @@ function Dashboard() {
       {/* XP Progress Card */}
       <XPProgressCard />
 
+      {/* XP Feedback Banner - shows after rule check-in */}
+      <XPFeedbackBanner />
+
       {/* Rules Management - replaces Rules Setup CTA */}
       <RulesManagement variant="dashboard" />
+
+      {/* End Session Button */}
+      <EndSessionButton />
 
       {/* Today at a Glance */}
       <TodaySummaryCard />
