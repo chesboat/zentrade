@@ -257,7 +257,8 @@ export function XPSettingsManager() {
       console.log('🔍 Saving XP settings via API...')
       
       // Prepare update data (exclude metadata fields)
-      const { lastModified: _lastModified, modifiedBy: _modifiedBy, version: _version, ...updateData } = settings
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { lastModified, modifiedBy, version, ...updateData } = settings
       
       const updatedSettings = await updateXPSettings(updateData)
       console.log('✅ XP settings saved successfully')
