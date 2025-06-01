@@ -14,20 +14,12 @@ interface EndSessionButtonProps {
 
 export function EndSessionButton({ variant = 'default', className = '' }: EndSessionButtonProps) {
   const [showModal, setShowModal] = useState(false)
-  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null)
-  const [feedbackXP, setFeedbackXP] = useState<number | null>(null)
   const { hasCheckedInToday, todaysXP } = useRuleAdherence()
 
   const handleSuccess = (xp: number, message: string) => {
-    setFeedbackXP(xp)
-    setFeedbackMessage(message)
     setShowModal(false)
-
-    // Auto-hide feedback after 5 seconds
-    setTimeout(() => {
-      setFeedbackMessage(null)
-      setFeedbackXP(null)
-    }, 5000)
+    // No need to manage local feedback state since hasCheckedInToday will be true
+    // and the component will show the completed state permanently
   }
 
   // If already checked in today, show completed state
@@ -64,22 +56,6 @@ export function EndSessionButton({ variant = 'default', className = '' }: EndSes
 
   return (
     <div className={`space-y-3 ${className}`}>
-      {/* Success Feedback Banner */}
-      {feedbackMessage && feedbackXP !== null && (
-        <div className="p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border border-green-200 animate-in slide-in-from-top duration-300">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              <span className="font-medium text-green-800">Session Complete!</span>
-            </div>
-            <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-              +{feedbackXP} XP
-            </Badge>
-          </div>
-          <p className="text-sm text-green-700 mt-1">{feedbackMessage}</p>
-        </div>
-      )}
-
       {/* End Session Button */}
       {variant === 'compact' ? (
         <Button
