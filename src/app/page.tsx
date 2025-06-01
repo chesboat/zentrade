@@ -17,7 +17,6 @@ import { useTrades } from "@/contexts/TradesContext";
 import { calculateTradingStats } from "@/utils/tradingStats";
 import { useMemo, useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { Settings, Target, ChevronRight } from "lucide-react";
 import { RulesManagement } from "@/components/rules/RulesManagement";
 
 type DateFilterOption = 'all' | 'thisWeek' | 'lastWeek' | 'thisMonth' | 'lastMonth' | 'custom';

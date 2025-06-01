@@ -11,9 +11,7 @@ import {
   Settings, 
   Shield, 
   Calendar, 
-  Target,
   Mail,
-  Crown,
   ChevronRight
 } from "lucide-react"
 import { RulesManagement } from "@/components/rules/RulesManagement"
@@ -28,7 +26,7 @@ export default function ProfilePage() {
 }
 
 function ProfileContent() {
-  const { user, userProfile } = useAuth()
+  const { user } = useAuth()
 
   if (!user) {
     return <div>Loading...</div>

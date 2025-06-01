@@ -38,26 +38,26 @@ export function RulesManagement({ variant = 'full', className = '' }: RulesManag
   const [error, setError] = useState('')
 
   useEffect(() => {
+    const loadUserRules = async () => {
+      if (!user) return
+
+      try {
+        const userRef = doc(db, 'users', user.uid)
+        const userSnap = await getDoc(userRef)
+        
+        if (userSnap.exists() && userSnap.data().rulePreferences) {
+          const preferences = userSnap.data().rulePreferences as RulePreferences
+          setRulePreferences(preferences)
+          setCustomRules(preferences.customRules || [])
+        }
+      } catch (error) {
+        console.error('Error loading rules:', error)
+        setError('Failed to load rules')
+      }
+    }
+
     loadUserRules()
   }, [user])
-
-  const loadUserRules = async () => {
-    if (!user) return
-
-    try {
-      const userRef = doc(db, 'users', user.uid)
-      const userSnap = await getDoc(userRef)
-      
-      if (userSnap.exists() && userSnap.data().rulePreferences) {
-        const preferences = userSnap.data().rulePreferences as RulePreferences
-        setRulePreferences(preferences)
-        setCustomRules(preferences.customRules || [])
-      }
-    } catch (error) {
-      console.error('Error loading rules:', error)
-      setError('Failed to load rules')
-    }
-  }
 
   const saveRules = async (updatedRules: string[]) => {
     if (!user || !rulePreferences) return
