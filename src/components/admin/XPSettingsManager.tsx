@@ -18,7 +18,7 @@ import {
   CheckCircle
 } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext'
-import { getXPSettings, updateXPSettings } from '@/services/adminService'
+import { getXPSettings, updateXPSettings } from '@/lib/services/adminApiService'
 import { XPSettings } from '@/types/admin'
 
 interface XPValueInput {
@@ -201,16 +201,28 @@ export function XPSettingsManager() {
     loadSettings()
   }, [])
 
+  useEffect(() => {
+    // Check for changes whenever settings update
+    if (settings && originalSettings) {
+      const changed = JSON.stringify(settings) !== JSON.stringify(originalSettings)
+      setHasChanges(changed)
+    }
+  }, [settings, originalSettings])
+
   const loadSettings = async () => {
     try {
       setIsLoading(true)
+      setError(null)
+      console.log('🔍 Loading XP settings via API...')
+      
       const xpSettings = await getXPSettings()
+      console.log('✅ XP settings loaded successfully')
+      
       setSettings(xpSettings)
-      setOriginalSettings(xpSettings)
-      setHasChanges(false)
-    } catch (err) {
-      setError('Failed to load XP settings')
-      console.error('Error loading XP settings:', err)
+      setOriginalSettings(JSON.parse(JSON.stringify(xpSettings))) // Deep copy
+    } catch (error) {
+      console.error('❌ Error loading XP settings:', error)
+      setError((error as Error).message || 'Failed to load XP settings')
     } finally {
       setIsLoading(false)
     }
@@ -219,14 +231,18 @@ export function XPSettingsManager() {
   const handleValueChange = (key: keyof XPSettings, value: number) => {
     if (!settings) return
     
-    const updatedSettings = { ...settings, [key]: value }
-    setSettings(updatedSettings)
-    
-    // Check if there are changes
-    if (originalSettings) {
-      const changed = Object.keys(XP_CONFIG.reduce((acc, config) => ({ ...acc, [config.key]: true }), {}))
-        .some(k => updatedSettings[k as keyof XPSettings] !== originalSettings[k as keyof XPSettings])
-      setHasChanges(changed)
+    const config = XP_CONFIG.find(c => c.key === key)
+    if (config) {
+      // Validate min/max bounds
+      const clampedValue = Math.max(
+        config.min || 0, 
+        Math.min(config.max || 999999, value)
+      )
+      
+      setSettings({
+        ...settings,
+        [key]: clampedValue
+      })
     }
   }
 
@@ -236,25 +252,26 @@ export function XPSettingsManager() {
     try {
       setIsSaving(true)
       setError(null)
+      setSuccess(null)
       
-      // Extract only the XP values for update - create a new object with just the numeric values
-      const xpUpdates: Record<string, number> = {}
-      XP_CONFIG.forEach(config => {
-        xpUpdates[config.key] = settings[config.key] as number
-      })
+      console.log('🔍 Saving XP settings via API...')
       
-      await updateXPSettings(xpUpdates, user.uid)
+      // Prepare update data (exclude metadata fields)
+      const { lastModified, modifiedBy, version, ...updateData } = settings
       
-      setOriginalSettings(settings)
-      setHasChanges(false)
-      setSuccess('XP settings updated successfully!')
+      const updatedSettings = await updateXPSettings(updateData)
+      console.log('✅ XP settings saved successfully')
+      
+      setSettings(updatedSettings)
+      setOriginalSettings(JSON.parse(JSON.stringify(updatedSettings)))
+      setSuccess('XP settings saved successfully!')
       
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(null), 3000)
       
-    } catch (err) {
-      setError('Failed to save XP settings')
-      console.error('Error saving XP settings:', err)
+    } catch (error) {
+      console.error('❌ Error saving XP settings:', error)
+      setError((error as Error).message || 'Failed to save XP settings')
     } finally {
       setIsSaving(false)
     }
@@ -262,8 +279,9 @@ export function XPSettingsManager() {
 
   const handleReset = () => {
     if (originalSettings) {
-      setSettings(originalSettings)
-      setHasChanges(false)
+      setSettings(JSON.parse(JSON.stringify(originalSettings)))
+      setError(null)
+      setSuccess(null)
     }
   }
 

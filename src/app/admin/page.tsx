@@ -1,6 +1,6 @@
 "use client"
 
-// Admin Dashboard - Force redeploy v2 - Firebase connection fix
+// Admin Dashboard - Server-side Firebase Admin SDK implementation
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
@@ -22,11 +22,9 @@ import {
   CheckCircle,
   Clock
 } from "lucide-react"
-import { isUserAdmin, getUserAnalytics, getAuditLogs } from '@/services/adminService'
+import { checkAdminAccess, getUserAnalytics } from '@/lib/services/adminApiService'
 import { XPSettingsManager } from '@/components/admin/XPSettingsManager'
 // import { QuestionnaireManager } from '@/components/admin/QuestionnaireManager'
-import { AdminAuditLog } from '@/types/admin'
-import { db } from '@/lib/firebase'
 
 export default function AdminDashboard() {
   const { user } = useAuth()
@@ -35,22 +33,18 @@ export default function AdminDashboard() {
   const [isLoading, setIsLoading] = useState(true)
   const [analytics, setAnalytics] = useState<{
     totalUsers: number;
-    activeUsers: number; 
-    totalRuleCheckIns: number;
-    engagementRate: number;
+    activeUsersLast7Days: number; 
+    totalSessions: number;
+    averageSessionsPerUser: number;
+    topPerformers: any[];
+    recentActivity: any[];
   } | null>(null)
-  const [auditLogs, setAuditLogs] = useState<AdminAuditLog[]>([])
   const [activeTab, setActiveTab] = useState('overview')
 
   useEffect(() => {
-    const checkAdminAccess = async () => {
-      console.log('🔍 Admin Debug - Starting admin access check')
+    const checkAdminAccessAndLoadData = async () => {
+      console.log('🔍 Admin Debug - Starting admin access check via API')
       console.log('🔍 User state:', user ? `Logged in as ${user.email}` : 'No user')
-      console.log('🔍 Environment check:', {
-        apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ? 'PRESENT' : 'MISSING',
-        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ? 'PRESENT' : 'MISSING',
-        authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ? 'PRESENT' : 'MISSING'
-      })
       
       if (!user) {
         console.log('🔍 Redirecting to login - no user')
@@ -59,23 +53,8 @@ export default function AdminDashboard() {
       }
 
       try {
-        console.log('🔍 Testing Firebase connection...')
-        
-        // First test basic Firebase connectivity
-        console.log('🔍 Testing basic Firestore read...')
-        const { doc, getDoc } = await import('firebase/firestore')
-        const testDoc = doc(db, 'test', 'connectivity')
-        
-        try {
-          await getDoc(testDoc)
-          console.log('✅ Basic Firestore connection works')
-        } catch (connectError) {
-          console.error('❌ Basic Firestore connection failed:', connectError)
-          throw new Error(`Firebase connectivity issue: ${(connectError as Error).message}`)
-        }
-        
-        console.log('🔍 Testing admin authentication...')
-        const adminStatus = await isUserAdmin(user.uid)
+        console.log('🔍 Checking admin access via server-side API...')
+        const adminStatus = await checkAdminAccess()
         console.log('🔍 Admin status result:', adminStatus)
         
         if (!adminStatus) {
@@ -84,24 +63,18 @@ export default function AdminDashboard() {
           return
         }
         
-        console.log('🔍 User is admin, loading dashboard')
+        console.log('🔍 User is admin, loading dashboard data')
         setIsAdmin(true)
         
-        // Load analytics and audit logs
-        const [analyticsData, logs] = await Promise.all([
-          getUserAnalytics(),
-          getAuditLogs(50)
-        ])
-        
+        // Load analytics data
+        const analyticsData = await getUserAnalytics()
         setAnalytics(analyticsData)
-        setAuditLogs(logs)
+        
         console.log('🔍 Admin dashboard loaded successfully')
       } catch (error) {
         console.error('🔥 Error checking admin access:', error)
         console.error('🔥 Error details:', {
-          message: (error as Error).message,
-          code: (error as { code?: string }).code,
-          stack: (error as Error).stack
+          message: (error as Error).message
         })
         router.push('/dashboard')
       } finally {
@@ -109,7 +82,7 @@ export default function AdminDashboard() {
       }
     }
 
-    checkAdminAccess()
+    checkAdminAccessAndLoadData()
   }, [user, router])
 
   if (isLoading) {
@@ -144,9 +117,9 @@ export default function AdminDashboard() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
           <p className="text-gray-600">Manage XP settings, questionnaires, and system configuration</p>
-          {/* DEBUG: Version indicator */}
-          <div className="text-xs text-red-500 font-mono mt-1">
-            🚀 DEBUG VERSION v3 - {new Date().toISOString()}
+          {/* Version indicator */}
+          <div className="text-xs text-green-500 font-mono mt-1">
+            ✅ SERVER-SIDE API v1.0 - {new Date().toISOString()}
           </div>
         </div>
         <Badge variant="secondary" className="bg-blue-100 text-blue-800">
@@ -156,7 +129,7 @@ export default function AdminDashboard() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
             Overview
@@ -168,10 +141,6 @@ export default function AdminDashboard() {
           <TabsTrigger value="questionnaires" className="flex items-center gap-2">
             <HelpCircle className="h-4 w-4" />
             Questionnaires
-          </TabsTrigger>
-          <TabsTrigger value="audit" className="flex items-center gap-2">
-            <Activity className="h-4 w-4" />
-            Audit Log
           </TabsTrigger>
         </TabsList>
 
@@ -194,24 +163,24 @@ export default function AdminDashboard() {
 
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Active Users</CardTitle>
+                  <CardTitle className="text-sm font-medium">Active Users (7d)</CardTitle>
                   <Activity className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{analytics.activeUsers}</div>
+                  <div className="text-2xl font-bold">{analytics.activeUsersLast7Days}</div>
                   <p className="text-xs text-muted-foreground">
-                    Last 30 days
+                    Last 7 days
                   </p>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Rule Check-ins</CardTitle>
-                  <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                  <CardTitle className="text-sm font-medium">Total Sessions</CardTitle>
+                  <Database className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{analytics.totalRuleCheckIns}</div>
+                  <div className="text-2xl font-bold">{analytics.totalSessions}</div>
                   <p className="text-xs text-muted-foreground">
                     All time
                   </p>
@@ -220,86 +189,49 @@ export default function AdminDashboard() {
 
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Engagement Rate</CardTitle>
+                  <CardTitle className="text-sm font-medium">Avg Sessions/User</CardTitle>
                   <BarChart3 className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{analytics.engagementRate.toFixed(1)}%</div>
+                  <div className="text-2xl font-bold">{analytics.averageSessionsPerUser}</div>
                   <p className="text-xs text-muted-foreground">
-                    Active vs total users
+                    Engagement metric
                   </p>
                 </CardContent>
               </Card>
             </div>
           )}
 
-          {/* Quick Actions */}
           <Card>
             <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Button 
-                  variant="outline" 
-                  className="flex items-center gap-2"
-                  onClick={() => setActiveTab('xp-settings')}
-                >
-                  <Settings className="h-4 w-4" />
-                  Manage XP Values
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="flex items-center gap-2"
-                  onClick={() => setActiveTab('questionnaires')}
-                >
-                  <HelpCircle className="h-4 w-4" />
-                  Edit Questionnaires
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="flex items-center gap-2"
-                  onClick={() => setActiveTab('audit')}
-                >
-                  <Eye className="h-4 w-4" />
-                  View Recent Changes
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Recent Activity */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Admin Activity</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle className="h-5 w-5 text-green-500" />
+                System Status
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {auditLogs.slice(0, 5).map((log) => (
-                  <div key={log.id} className="flex items-center justify-between py-2 border-b last:border-b-0">
-                    <div className="flex items-center gap-3">
-                      <div className="p-1 bg-blue-100 rounded">
-                        {log.action === 'create' && <Database className="h-3 w-3 text-blue-600" />}
-                        {log.action === 'update' && <Edit className="h-3 w-3 text-blue-600" />}
-                        {log.action === 'delete' && <AlertTriangle className="h-3 w-3 text-red-600" />}
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">
-                          {log.action.charAt(0).toUpperCase() + log.action.slice(1)}d {log.resource}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {log.resourceId}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="flex items-center gap-1 text-xs text-gray-500">
-                        <Clock className="h-3 w-3" />
-                        {log.timestamp.toLocaleDateString()}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Firebase Admin SDK</span>
+                  <Badge variant="default" className="bg-green-100 text-green-800">
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    Connected
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Admin Authentication</span>
+                  <Badge variant="default" className="bg-green-100 text-green-800">
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    Active
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">API Routes</span>
+                  <Badge variant="default" className="bg-green-100 text-green-800">
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    Operational
+                  </Badge>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -312,55 +244,17 @@ export default function AdminDashboard() {
 
         {/* Questionnaires Tab */}
         <TabsContent value="questionnaires">
-          {/* <QuestionnaireManager /> */}
-        </TabsContent>
-
-        {/* Audit Log Tab */}
-        <TabsContent value="audit">
           <Card>
             <CardHeader>
-              <CardTitle>Admin Audit Log</CardTitle>
+              <CardTitle>Questionnaire Management</CardTitle>
               <p className="text-sm text-gray-600">
-                Complete history of admin actions and system changes
+                Coming soon - Manage questionnaire templates and questions
               </p>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {auditLogs.map((log) => (
-                  <div key={log.id} className="p-4 border rounded-lg">
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <Badge variant={
-                            log.action === 'create' ? 'default' :
-                            log.action === 'update' ? 'secondary' :
-                            'destructive'
-                          }>
-                            {log.action}
-                          </Badge>
-                          <span className="font-medium">{log.resource}</span>
-                          <span className="text-gray-500">({log.resourceId})</span>
-                        </div>
-                        <div className="text-sm text-gray-600">
-                          By: {log.userEmail || log.userId}
-                        </div>
-                        {(log.oldValue && log.newValue) ? (
-                          <details className="text-xs">
-                            <summary className="cursor-pointer text-blue-600">View changes</summary>
-                            <div className="mt-2 p-2 bg-gray-50 rounded">
-                              <pre className="whitespace-pre-wrap">
-                                {JSON.stringify({ oldValue: log.oldValue, newValue: log.newValue }, null, 2)}
-                              </pre>
-                            </div>
-                          </details>
-                        ) : null}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {log.timestamp.toLocaleString()}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+              <div className="text-center py-8">
+                <HelpCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500">Questionnaire management will be available soon</p>
               </div>
             </CardContent>
           </Card>
