@@ -16,7 +16,6 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { useTrades } from "@/contexts/TradesContext";
 import { calculateTradingStats } from "@/utils/tradingStats";
 import { useMemo, useState, useEffect, useRef } from "react";
-import Link from "next/link";
 import { RulesManagement } from "@/components/rules/RulesManagement";
 
 type DateFilterOption = 'all' | 'thisWeek' | 'lastWeek' | 'thisMonth' | 'lastMonth' | 'custom';
