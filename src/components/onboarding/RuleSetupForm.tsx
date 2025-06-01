@@ -19,8 +19,7 @@ import {
   Lightbulb,
   Edit,
   ChevronRight,
-  Zap,
-  X
+  Zap
 } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext'
 import { doc, updateDoc } from 'firebase/firestore'
