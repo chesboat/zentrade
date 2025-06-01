@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, Shield, Trophy, Calendar, ChevronDown, Copy } from "lucide-react";
+import { DollarSign, Shield, Trophy, Calendar, ChevronDown } from "lucide-react";
 import { TradePaste } from "@/components/TradePaste";
 import { CalendarView } from "@/components/CalendarView";
 import { TodaySummaryCard } from "@/components/TodaySummaryCard";
@@ -19,7 +19,6 @@ import { useMemo, useState, useEffect, useRef } from "react";
 import { RulesManagement } from "@/components/rules/RulesManagement";
 import { EndSessionButton } from "@/components/rules/EndSessionButton";
 import { XPFeedbackBanner } from "@/components/gamification/XPFeedbackBanner";
-import { useAuth } from "@/contexts/AuthContext";
 
 type DateFilterOption = 'all' | 'thisWeek' | 'lastWeek' | 'thisMonth' | 'lastMonth' | 'custom';
 
@@ -100,7 +99,6 @@ function Dashboard() {
   const [showDateDropdown, setShowDateDropdown] = useState(false);
   const [customDateRange, setCustomDateRange] = useState({ start: '', end: '' });
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const { user } = useAuth();
 
   // Handle click outside to close dropdown
   useEffect(() => {
