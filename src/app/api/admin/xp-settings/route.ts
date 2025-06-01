@@ -20,6 +20,7 @@ async function verifyAdminWithFallback(idToken: string) {
 }
 
 // Helper function to get Firestore with fallback
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function getFirestoreWithFallback(): Promise<{ db: any; method: string }> {
   try {
     const { adminDb } = await import('../../../../lib/firebase-admin')
