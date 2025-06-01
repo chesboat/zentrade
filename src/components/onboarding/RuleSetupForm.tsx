@@ -19,7 +19,9 @@ import {
   Lightbulb,
   Edit,
   ChevronRight,
-  Zap
+  Zap,
+  X,
+  Plus
 } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext'
 import { doc, updateDoc } from 'firebase/firestore'
@@ -56,7 +58,6 @@ export function RuleSetupForm() {
   const [currentStep, setCurrentStep] = useState(1)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
-  const [customRulesText, setCustomRulesText] = useState('')
   
   // New state for customizable suggested rules
   const [selectedSuggestedRules, setSelectedSuggestedRules] = useState<boolean[]>(
@@ -65,7 +66,12 @@ export function RuleSetupForm() {
   const [editedSuggestedRules, setEditedSuggestedRules] = useState<string[]>([...SUGGESTED_RULES])
   const [editingRuleIndex, setEditingRuleIndex] = useState<number | null>(null)
   
-  const totalSteps = 11
+  // State for custom rules
+  const [customRules, setCustomRules] = useState<string[]>([])
+  const [newRuleText, setNewRuleText] = useState('')
+  const [isAddingRule, setIsAddingRule] = useState(false)
+  
+  const totalSteps = 10
   const progress = (currentStep / totalSteps) * 100
 
   const [preferences, setPreferences] = useState<RulePreferences>({
@@ -92,12 +98,6 @@ export function RuleSetupForm() {
     setError('')
 
     try {
-      // Parse custom rules from textarea
-      const customRules = customRulesText
-        .split('\n')
-        .map(rule => rule.trim())
-        .filter(rule => rule.length > 0)
-
       // Get selected and edited suggested rules if user wants suggestions
       const finalSuggestedRules = preferences.wantsSuggestedRules 
         ? editedSuggestedRules.filter((_, index) => selectedSuggestedRules[index])
@@ -145,6 +145,25 @@ export function RuleSetupForm() {
     const newRules = [...editedSuggestedRules]
     newRules[index] = newText
     setEditedSuggestedRules(newRules)
+  }
+
+  const addCustomRule = () => {
+    if (newRuleText.trim()) {
+      setCustomRules([...customRules, newRuleText.trim()])
+      setNewRuleText('')
+      setIsAddingRule(false)
+    }
+  }
+
+  const removeCustomRule = (index: number) => {
+    const newRules = customRules.filter((_, i) => i !== index)
+    setCustomRules(newRules)
+  }
+
+  const updateCustomRule = (index: number, newText: string) => {
+    const newRules = [...customRules]
+    newRules[index] = newText
+    setCustomRules(newRules)
   }
 
   const nextStep = () => {
@@ -465,13 +484,15 @@ export function RuleSetupForm() {
           <div className="space-y-6">
             <div className="text-center">
               <Lightbulb className="h-12 w-12 mx-auto text-blue-600 mb-4" />
-              <h3 className="text-xl font-semibold mb-2">Suggested Rules</h3>
-              <p className="text-muted-foreground">Would you like us to suggest rules based on your answers?</p>
+              <h3 className="text-xl font-semibold mb-2">Your Trading Rules</h3>
+              <p className="text-muted-foreground">Customize suggested rules and add your own</p>
             </div>
+            
+            {/* Suggested Rules Toggle */}
             <div className="space-y-3">
               {[
-                { value: true, label: "Yes, show me suggested rules", description: "We&apos;ll suggest rules based on best practices" },
-                { value: false, label: "No, I&apos;ll create my own", description: "Skip suggestions and add custom rules only" }
+                { value: true, label: "Include suggested rules", description: "We&apos;ll suggest rules based on best practices" },
+                { value: false, label: "Start with a blank slate", description: "Create all rules from scratch" }
               ].map(option => (
                 <div 
                   key={option.label}
@@ -495,11 +516,12 @@ export function RuleSetupForm() {
               ))}
             </div>
 
+            {/* Suggested Rules Section */}
             {preferences.wantsSuggestedRules && (
-              <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
                 <h4 className="font-medium text-blue-900 mb-3 flex items-center gap-2">
                   <Zap className="h-4 w-4" />
-                  Customize Your Rules
+                  Suggested Rules
                 </h4>
                 <p className="text-sm text-blue-700 mb-4">
                   Select which rules you want and edit them to fit your style
@@ -565,42 +587,104 @@ export function RuleSetupForm() {
                 </div>
               </div>
             )}
-          </div>
-        )
 
-      case 11:
-        return (
-          <div className="space-y-6">
-            <div className="text-center">
-              <Edit className="h-12 w-12 mx-auto text-purple-600 mb-4" />
-              <h3 className="text-xl font-semibold mb-2">Personal Rules</h3>
-              <p className="text-muted-foreground">Add any personal rules that are important to you</p>
-            </div>
-            <div className="space-y-3">
-              <Textarea
-                placeholder="Enter each rule on a new line, for example:&#10;&#10;Only trade when RSI is below 30&#10;Take profits at 2:1 risk/reward&#10;No trades during lunch hour (11:30-1:30)"
-                value={customRulesText}
-                onChange={(e) => setCustomRulesText(e.target.value)}
-                className="min-h-32"
-              />
-              <p className="text-sm text-muted-foreground">
-                Each line will become a separate rule. Leave blank if you don&apos;t want to add custom rules.
-              </p>
-            </div>
+            {/* Custom Rules Section */}
+            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-medium text-gray-900 flex items-center gap-2">
+                  <Edit className="h-4 w-4" />
+                  Your Custom Rules
+                </h4>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setIsAddingRule(true)}
+                  className="flex items-center gap-1"
+                >
+                  <Plus className="h-3 w-3" />
+                  Add Rule
+                </Button>
+              </div>
 
-            {customRulesText.trim() && (
-              <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
-                <h4 className="font-medium text-purple-900 mb-2">Your Custom Rules:</h4>
-                <div className="space-y-1">
-                  {customRulesText.split('\n').filter(rule => rule.trim()).map((rule, index) => (
-                    <div key={index} className="text-sm text-purple-800 flex items-start gap-2">
-                      <span className="text-purple-600 font-medium">{index + 1}.</span>
-                      <span>{rule.trim()}</span>
+              {/* Add new rule input */}
+              {isAddingRule && (
+                <div className="mb-3 p-3 bg-white rounded-lg border border-gray-300">
+                  <input
+                    type="text"
+                    value={newRuleText}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewRuleText(e.target.value)}
+                    placeholder="Enter your custom trading rule..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                      if (e.key === 'Enter') {
+                        addCustomRule()
+                      } else if (e.key === 'Escape') {
+                        setIsAddingRule(false)
+                        setNewRuleText('')
+                      }
+                    }}
+                    autoFocus
+                  />
+                  <div className="flex gap-2 mt-2">
+                    <Button size="sm" onClick={addCustomRule} disabled={!newRuleText.trim()}>
+                      Add Rule
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      onClick={() => {
+                        setIsAddingRule(false)
+                        setNewRuleText('')
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Display custom rules */}
+              {customRules.length > 0 ? (
+                <div className="space-y-2">
+                  {customRules.map((rule, index) => (
+                    <div key={index} className="flex items-start gap-3 p-3 bg-white rounded-lg border border-gray-300">
+                      <div className="flex-1">
+                        <input
+                          type="text"
+                          value={rule}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateCustomRule(index, e.target.value)}
+                          className="w-full px-2 py-1 border-0 text-sm focus:ring-0 focus:outline-none bg-transparent"
+                        />
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => removeCustomRule(index)}
+                        className="h-6 w-6 p-0 text-gray-400 hover:text-red-500"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
+              ) : (
+                <p className="text-sm text-gray-500 italic">
+                  {isAddingRule ? '' : 'No custom rules yet. Click "Add Rule" to create your first rule.'}
+                </p>
+              )}
+
+              {/* Rules summary */}
+              {(customRules.length > 0 || (preferences.wantsSuggestedRules && selectedSuggestedRules.some(Boolean))) && (
+                <div className="mt-4 p-3 bg-green-100 rounded border border-green-300">
+                  <p className="text-xs text-green-700">
+                    <strong>Your Complete Rule Set:</strong>
+                  </p>
+                  <p className="text-xs text-green-600 mt-1">
+                    {preferences.wantsSuggestedRules ? selectedSuggestedRules.filter(Boolean).length : 0} suggested rules + {customRules.length} custom rules = <strong>{(preferences.wantsSuggestedRules ? selectedSuggestedRules.filter(Boolean).length : 0) + customRules.length} total rules</strong>
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         )
 
