@@ -26,6 +26,31 @@ export const defaultRulePreferences: RulePreferences = {
   customRules: []
 }
 
+// Utility function to check if user has completed rule setup
+export const hasCompletedRuleSetup = (rulePreferences?: RulePreferences | null): boolean => {
+  return !!(rulePreferences && Object.keys(rulePreferences).length > 0)
+}
+
+// Utility function to get user rule preferences from Firestore
+export const getUserRulePreferences = async (uid: string): Promise<RulePreferences | null> => {
+  try {
+    const { doc, getDoc } = await import('firebase/firestore')
+    const { db } = await import('@/lib/firebase')
+    
+    const userRef = doc(db, 'users', uid)
+    const userSnap = await getDoc(userRef)
+    
+    if (userSnap.exists() && userSnap.data().rulePreferences) {
+      return userSnap.data().rulePreferences as RulePreferences
+    }
+    
+    return null
+  } catch (error) {
+    console.error('Error fetching user rule preferences:', error)
+    return null
+  }
+}
+
 export const getSessionTimeRange = (session: RulePreferences['session']) => {
   switch (session) {
     case 'london':

@@ -18,6 +18,7 @@ import { calculateTradingStats } from "@/utils/tradingStats";
 import { useMemo, useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Settings, Target, ChevronRight } from "lucide-react";
+import { RulesManagement } from "@/components/rules/RulesManagement";
 
 type DateFilterOption = 'all' | 'thisWeek' | 'lastWeek' | 'thisMonth' | 'lastMonth' | 'custom';
 
@@ -83,44 +84,6 @@ const dateFilters: DateFilter[] = [
     }
   }
 ];
-
-function RulesSetupCTA() {
-  return (
-    <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-purple-50">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-blue-900">
-          <Settings className="h-6 w-6 text-blue-600" />
-          Set Up Your Trading Rules
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <p className="text-blue-700">
-          Define your personal trading discipline system to stay consistent, build good habits, and improve your performance.
-        </p>
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm text-blue-600">
-            <Target className="h-4 w-4" />
-            <span>Takes only 5 minutes to complete</span>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-blue-600">
-            <Shield className="h-4 w-4" />
-            <span>Get personalized rule suggestions</span>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-blue-600">
-            <Trophy className="h-4 w-4" />
-            <span>Build consistency and discipline</span>
-          </div>
-        </div>
-        <Button asChild className="w-full bg-blue-600 hover:bg-blue-700">
-          <Link href="/onboarding" className="flex items-center gap-2">
-            Start Rule Setup
-            <ChevronRight className="h-4 w-4" />
-          </Link>
-        </Button>
-      </CardContent>
-    </Card>
-  )
-}
 
 export default function Home() {
   return (
@@ -235,8 +198,8 @@ function Dashboard() {
       {/* XP Progress Card */}
       <XPProgressCard />
 
-      {/* Rules Setup CTA */}
-      <RulesSetupCTA />
+      {/* Rules Management - replaces Rules Setup CTA */}
+      <RulesManagement variant="dashboard" />
 
       {/* Today at a Glance */}
       <TodaySummaryCard />
