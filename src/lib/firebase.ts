@@ -154,16 +154,23 @@ export async function withFirestoreRetry<T>(
 
 // Test connection on client side with enhanced retry
 if (typeof window !== 'undefined') {
-  // Wait a bit for Firebase to fully initialize
-  setTimeout(() => {
-    testFirestoreConnection().then(success => {
-      if (success) {
-        console.log('🎉 Firebase is ready for operations')
-      } else {
-        console.warn('⚠️ Firebase connection issues detected - operations will use retry logic')
-      }
-    })
-  }, 1000)
+  // Only test connection for non-admin pages to reduce console noise
+  const isAdminPage = window.location.pathname.includes('/admin')
+  
+  if (!isAdminPage) {
+    // Wait a bit for Firebase to fully initialize
+    setTimeout(() => {
+      testFirestoreConnection().then(success => {
+        if (success) {
+          console.log('🎉 Firebase is ready for operations')
+        } else {
+          console.warn('⚠️ Firebase connection issues detected - operations will use retry logic')
+        }
+      })
+    }, 1000)
+  } else {
+    console.log('🔧 Admin page detected - skipping client Firebase connection test (using API routes)')
+  }
 }
 
 // Initialize Analytics only in browser and if supported
