@@ -15,7 +15,10 @@ import {
   AlertTriangle,
   Bell,
   Calendar,
-  Settings
+  Settings,
+  ChevronDown,
+  ChevronUp,
+  Trash2
 } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext'
 import { doc, updateDoc, getDoc } from 'firebase/firestore'
@@ -36,6 +39,9 @@ export function RulesManagement({ variant = 'full', className = '' }: RulesManag
   const [isAddingRule, setIsAddingRule] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [editingIndex, setEditingIndex] = useState<number | null>(null)
+  const [editingText, setEditingText] = useState('')
 
   useEffect(() => {
     const loadUserRules = async () => {
@@ -116,6 +122,24 @@ export function RulesManagement({ variant = 'full', className = '' }: RulesManag
     return Shield
   }
 
+  const startEditing = (index: number, text: string) => {
+    setEditingIndex(index)
+    setEditingText(text)
+  }
+
+  const saveEdit = async () => {
+    if (editingIndex !== null && editingText.trim()) {
+      await updateCustomRule(editingIndex, editingText.trim())
+      setEditingIndex(null)
+      setEditingText('')
+    }
+  }
+
+  const cancelEdit = () => {
+    setEditingIndex(null)
+    setEditingText('')
+  }
+
   // If no rules setup yet, show CTA
   if (!rulePreferences) {
     return (
@@ -151,8 +175,10 @@ export function RulesManagement({ variant = 'full', className = '' }: RulesManag
     )
   }
 
-  // Dashboard variant - compact view
+  // Dashboard variant - enhanced expandable view
   if (variant === 'dashboard') {
+    const displayRules = isExpanded ? customRules : customRules.slice(0, 3)
+    
     return (
       <Card className={className}>
         <CardHeader className="pb-4">
@@ -161,53 +187,97 @@ export function RulesManagement({ variant = 'full', className = '' }: RulesManag
               <Shield className="h-5 w-5 text-green-600" />
               Your Trading Rules
             </CardTitle>
-            <Badge variant="secondary" className="bg-green-100 text-green-700">
-              {customRules.length} {customRules.length === 1 ? 'rule' : 'rules'}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="bg-green-100 text-green-700">
+                {customRules.length} {customRules.length === 1 ? 'rule' : 'rules'}
+              </Badge>
+              {customRules.length > 3 && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  className="flex items-center gap-1 text-xs"
+                >
+                  {isExpanded ? (
+                    <>
+                      <ChevronUp className="h-3 w-3" />
+                      Show Less
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-3 w-3" />
+                      Show All ({customRules.length})
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Show first 3 rules */}
+          {/* Display rules */}
           <div className="space-y-2">
-            {customRules.slice(0, 3).map((rule, index) => {
+            {displayRules.map((rule, index) => {
               const IconComponent = getRuleTypeIcon(rule)
+              const isEditing = editingIndex === index
+              
               return (
-                <div key={index} className="flex items-start gap-2 p-2 bg-gray-50 rounded-lg">
+                <div key={index} className="group flex items-start gap-2 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                   <IconComponent className="h-4 w-4 text-gray-600 mt-0.5 flex-shrink-0" />
-                  <span className="text-sm text-gray-700 leading-relaxed">{rule}</span>
+                  
+                  {isEditing ? (
+                    <div className="flex-1 space-y-2">
+                      <input
+                        type="text"
+                        value={editingText}
+                        onChange={(e) => setEditingText(e.target.value)}
+                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') saveEdit()
+                          if (e.key === 'Escape') cancelEdit()
+                        }}
+                        autoFocus
+                      />
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={saveEdit} disabled={!editingText.trim() || isLoading}>
+                          Save
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={cancelEdit}>
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <span className="flex-1 text-sm text-gray-700 leading-relaxed">{rule}</span>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => startEditing(index, rule)}
+                          className="h-6 w-6 p-0"
+                        >
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => removeCustomRule(index)}
+                          className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </div>
               )
             })}
           </div>
 
-          {/* Show "and X more" if there are more than 3 */}
-          {customRules.length > 3 && (
-            <p className="text-sm text-gray-500 italic">
-              ...and {customRules.length - 3} more rules
-            </p>
-          )}
-
-          <div className="flex gap-2 pt-2">
-            <Button size="sm" variant="outline" asChild className="flex-1">
-              <Link href="/profile" className="flex items-center gap-1">
-                <Edit className="h-3 w-3" />
-                Manage Rules
-              </Link>
-            </Button>
-            <Button 
-              size="sm" 
-              variant="outline"
-              onClick={() => setIsAddingRule(true)}
-              className="flex items-center gap-1"
-            >
-              <Plus className="h-3 w-3" />
-              Add Rule
-            </Button>
-          </div>
-
           {/* Quick add rule */}
           {isAddingRule && (
-            <div className="space-y-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="space-y-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
               <input
                 type="text"
                 value={newRuleText}
@@ -241,6 +311,24 @@ export function RulesManagement({ variant = 'full', className = '' }: RulesManag
               </div>
             </div>
           )}
+
+          <div className="flex gap-2 pt-2">
+            <Button size="sm" variant="outline" asChild className="flex-1">
+              <Link href="/profile" className="flex items-center gap-1">
+                <Edit className="h-3 w-3" />
+                Manage Rules
+              </Link>
+            </Button>
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={() => setIsAddingRule(true)}
+              className="flex items-center gap-1"
+            >
+              <Plus className="h-3 w-3" />
+              Add Rule
+            </Button>
+          </div>
 
           {error && (
             <p className="text-sm text-red-600 bg-red-50 p-2 rounded">{error}</p>
