@@ -12,7 +12,7 @@ async function verifyAdminWithFallback(idToken: string) {
   } catch (error) {
     console.log('🔄 Admin SDK failed, using fallback verification')
     // Fallback verification
-    const adminEmails = ['chesboatwright@gmail.com']
+    const adminEmails = ['chesbo@gmail.com']
     const payload = JSON.parse(atob(idToken.split('.')[1]))
     const isAdmin = adminEmails.includes(payload.email)
     return { isAdmin, uid: payload.sub || payload.user_id, method: 'fallback' }

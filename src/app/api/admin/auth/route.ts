@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       
       // Fallback: Basic verification using known admin emails
       // This is a temporary solution while we set up proper service account
-      const adminEmails = ['chesboatwright@gmail.com'] // Add your admin emails here
+      const adminEmails = ['chesbo@gmail.com'] // Add your admin emails here
       
       try {
         // Basic token verification (we can't verify the signature without Admin SDK)
