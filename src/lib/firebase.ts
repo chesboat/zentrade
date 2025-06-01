@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore'
+import { getFirestore, enableNetwork } from 'firebase/firestore'
 import { getAnalytics, isSupported } from 'firebase/analytics'
 
 // Get environment variables - Next.js automatically makes NEXT_PUBLIC_ vars available on client
@@ -28,14 +28,16 @@ console.log('Firebase config values:', {
 // Initialize Firebase app
 const app = initializeApp(firebaseConfig)
 
-// Initialize Firestore with offline persistence enabled
-export const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({
-    tabManager: persistentMultipleTabManager()
-  })
-})
-
+// Initialize Auth
 export const auth = getAuth(app)
+
+// Initialize Firestore with basic configuration (compatible with Vercel)
+export const db = getFirestore(app)
+
+// Enable network explicitly
+if (typeof window !== 'undefined') {
+  enableNetwork(db).catch(console.error)
+}
 
 // Initialize Analytics only in browser and if supported
 export const analytics = typeof window !== 'undefined' ? 

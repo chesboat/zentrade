@@ -1,5 +1,6 @@
 "use client"
 
+// Admin Dashboard - Force redeploy v2 - Firebase connection fix
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
@@ -23,7 +24,7 @@ import {
 } from "lucide-react"
 import { isUserAdmin, getUserAnalytics, getAuditLogs } from '@/services/adminService'
 import { XPSettingsManager } from '@/components/admin/XPSettingsManager'
-import { QuestionnaireManager } from '@/components/admin/QuestionnaireManager'
+// import { QuestionnaireManager } from '@/components/admin/QuestionnaireManager'
 import { AdminAuditLog } from '@/types/admin'
 
 export default function AdminDashboard() {
@@ -272,7 +273,7 @@ export default function AdminDashboard() {
 
         {/* Questionnaires Tab */}
         <TabsContent value="questionnaires">
-          <QuestionnaireManager />
+          {/* <QuestionnaireManager /> */}
         </TabsContent>
 
         {/* Audit Log Tab */}
