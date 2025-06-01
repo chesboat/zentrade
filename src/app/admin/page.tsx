@@ -14,13 +14,10 @@ import {
   Users, 
   Activity,
   Shield,
-  Eye,
-  Edit,
   Database,
   BarChart3,
   AlertTriangle,
-  CheckCircle,
-  Clock
+  CheckCircle
 } from "lucide-react"
 import { checkAdminAccess, getUserAnalytics } from '@/lib/services/adminApiService'
 import { XPSettingsManager } from '@/components/admin/XPSettingsManager'
@@ -36,8 +33,8 @@ export default function AdminDashboard() {
     activeUsersLast7Days: number; 
     totalSessions: number;
     averageSessionsPerUser: number;
-    topPerformers: any[];
-    recentActivity: any[];
+    topPerformers: unknown[];
+    recentActivity: unknown[];
   } | null>(null)
   const [activeTab, setActiveTab] = useState('overview')
 

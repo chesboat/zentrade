@@ -73,7 +73,7 @@ export async function PUT(request: NextRequest) {
       ...updates,
       lastModified: new Date(),
       modifiedBy: decodedToken.uid,
-      version: ((currentSettings as any)?.version || 0) + 1
+      version: ((currentSettings as { version?: number })?.version || 0) + 1
     }
     
     await adminDb.collection('adminConfig').doc('xpSettings').set(updatedSettings)
