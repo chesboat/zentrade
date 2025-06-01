@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
-import { getFirestore } from 'firebase/firestore'
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore'
 import { getAnalytics, isSupported } from 'firebase/analytics'
 
 // Get environment variables - Next.js automatically makes NEXT_PUBLIC_ vars available on client
@@ -25,9 +25,17 @@ console.log('Firebase config values:', {
   measurementId: firebaseConfig.measurementId || 'MISSING'
 })
 
+// Initialize Firebase app
 const app = initializeApp(firebaseConfig)
+
+// Initialize Firestore with offline persistence enabled
+export const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager()
+  })
+})
+
 export const auth = getAuth(app)
-export const db = getFirestore(app)
 
 // Initialize Analytics only in browser and if supported
 export const analytics = typeof window !== 'undefined' ? 
