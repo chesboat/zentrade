@@ -9,7 +9,7 @@ async function verifyAdminWithFallback(idToken: string) {
     const decodedToken = await adminAuth.verifyIdToken(idToken)
     const isAdmin = await verifyAdminAccess(decodedToken.uid)
     return { isAdmin, uid: decodedToken.uid, method: 'admin-sdk' }
-  } catch (error) {
+  } catch {
     console.log('🔄 Admin SDK failed, using fallback verification')
     // Fallback verification
     const adminEmails = ['chesbo@gmail.com']
@@ -20,11 +20,11 @@ async function verifyAdminWithFallback(idToken: string) {
 }
 
 // Helper function to get Firestore with fallback
-async function getFirestoreWithFallback(): Promise<any> {
+async function getFirestoreWithFallback(): Promise<{ db: any; method: string }> {
   try {
     const { adminDb } = await import('../../../../lib/firebase-admin')
     return { db: adminDb, method: 'admin-sdk' }
-  } catch (error) {
+  } catch {
     console.log('🔄 Using client-side Firestore as fallback')
     const { db } = await import('../../../../lib/firebase')
     return { db, method: 'client-sdk' }
