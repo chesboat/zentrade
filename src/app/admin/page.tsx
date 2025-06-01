@@ -43,6 +43,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const checkAdminAccess = async () => {
       console.log('Admin page: Checking access, user:', user?.uid)
+      console.log('Admin page: Current timestamp:', new Date().toISOString()) // Force redeploy
       
       if (!user) {
         console.log('Admin page: No user, redirecting to login')
