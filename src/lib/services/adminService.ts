@@ -8,7 +8,6 @@ import {
   addDoc, 
   deleteDoc, 
   query, 
-  where, 
   orderBy, 
   limit,
   Timestamp,
@@ -274,7 +273,7 @@ export const getUserAnalytics = async () => {
       
       // Get recent activity metrics
       const now = new Date()
-      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+      // const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
       
       // Sample analytics structure - you can enhance this based on your needs
       return {

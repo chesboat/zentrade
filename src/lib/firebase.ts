@@ -1,6 +1,6 @@
 import { initializeApp, getApps } from 'firebase/app'
-import { getAuth, connectAuthEmulator } from 'firebase/auth'
-import { getFirestore, connectFirestoreEmulator, enableNetwork, disableNetwork } from 'firebase/firestore'
+import { getAuth } from 'firebase/auth'
+import { getFirestore, enableNetwork, disableNetwork } from 'firebase/firestore'
 import { getAnalytics, isSupported } from 'firebase/analytics'
 
 // Get environment variables - Next.js automatically makes NEXT_PUBLIC_ vars available on client
@@ -60,7 +60,7 @@ async function testFirestoreConnection(retryCount = 0): Promise<boolean> {
     try {
       await enableNetwork(db)
       console.log('🔧 Network enabled successfully')
-    } catch (networkError) {
+    } catch (networkError: unknown) {
       console.log('🔧 Network enable failed (may already be enabled):', networkError)
     }
     
@@ -73,10 +73,11 @@ async function testFirestoreConnection(retryCount = 0): Promise<boolean> {
     connectionRetryCount = 0
     return true
     
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const firebaseError = error as { code?: string }
     console.error(`❌ Firestore connection failed (attempt ${retryCount + 1}):`, error)
     
-    if (error.code === 'unavailable' && retryCount < MAX_RETRY_ATTEMPTS - 1) {
+    if (firebaseError.code === 'unavailable' && retryCount < MAX_RETRY_ATTEMPTS - 1) {
       console.log(`🔄 Retrying connection in ${RETRY_DELAY}ms...`)
       
       // Try to reset network connection
@@ -120,10 +121,11 @@ export async function withFirestoreRetry<T>(
       connectionRetryCount = 0
       return result
       
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const firebaseError = error as { code?: string }
       console.error(`❌ ${operationName} failed (attempt ${retryCount + 1}):`, error)
       
-      if (error.code === 'unavailable' && retryCount < MAX_RETRY_ATTEMPTS - 1) {
+      if (firebaseError.code === 'unavailable' && retryCount < MAX_RETRY_ATTEMPTS - 1) {
         console.log(`🔄 Retrying ${operationName} in ${RETRY_DELAY}ms...`)
         
         // Mark as offline and try to reconnect
