@@ -43,19 +43,32 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     const checkAdminAccess = async () => {
+      console.log('🔍 Admin Debug - Starting admin access check')
+      console.log('🔍 User state:', user ? `Logged in as ${user.email}` : 'No user')
+      console.log('🔍 Environment check:', {
+        apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ? 'PRESENT' : 'MISSING',
+        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ? 'PRESENT' : 'MISSING',
+        authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ? 'PRESENT' : 'MISSING'
+      })
+      
       if (!user) {
+        console.log('🔍 Redirecting to login - no user')
         router.push('/login')
         return
       }
 
       try {
+        console.log('🔍 Testing Firebase connection...')
         const adminStatus = await isUserAdmin(user.uid)
+        console.log('🔍 Admin status result:', adminStatus)
         
         if (!adminStatus) {
+          console.log('🔍 User is not admin, redirecting to dashboard')
           router.push('/dashboard')
           return
         }
         
+        console.log('🔍 User is admin, loading dashboard')
         setIsAdmin(true)
         
         // Load analytics and audit logs
@@ -66,8 +79,14 @@ export default function AdminDashboard() {
         
         setAnalytics(analyticsData)
         setAuditLogs(logs)
+        console.log('🔍 Admin dashboard loaded successfully')
       } catch (error) {
-        console.error('Error checking admin access:', error)
+        console.error('🔥 Error checking admin access:', error)
+        console.error('🔥 Error details:', {
+          message: (error as Error).message,
+          code: (error as any).code,
+          stack: (error as Error).stack
+        })
         router.push('/dashboard')
       } finally {
         setIsLoading(false)
