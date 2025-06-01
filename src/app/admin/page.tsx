@@ -303,7 +303,7 @@ export default function AdminDashboard() {
                         <div className="text-sm text-gray-600">
                           By: {log.userEmail || log.userId}
                         </div>
-                        {log.oldValue && log.newValue && (
+                        {(log.oldValue && log.newValue) ? (
                           <details className="text-xs">
                             <summary className="cursor-pointer text-blue-600">View changes</summary>
                             <div className="mt-2 p-2 bg-gray-50 rounded">
@@ -312,7 +312,7 @@ export default function AdminDashboard() {
                               </pre>
                             </div>
                           </details>
-                        )}
+                        ) : null}
                       </div>
                       <div className="text-sm text-gray-500">
                         {log.timestamp.toLocaleString()}
